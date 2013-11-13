@@ -72,8 +72,11 @@ events are objects that have:
 """
 
 class Event(object):
-    def __init__(self, sample_time, **kwargs):
+    def __init__(self, device, data_type, sample_time, **kwargs):
         #TODO: events should be immutable and hashable
+        #TODO: validate device, data_type, and keys (allowable characters, etc)
+        self.device = device
+        self.data_type = data_type
         self.sample_time = sample_time
         self._keys = set()
         for key, value in kwargs.items():
@@ -105,6 +108,8 @@ class Event(object):
             if isinstance(value, datetime.datetime):
                 value = value.isoformat()
             new_dict[key] = value
+        new_dict['data_type'] = self.data_type
+        new_dict['device'] = self.device
         return new_dict
 
     def __eq__(self, other):
@@ -144,9 +149,13 @@ class Event(object):
         """
         Convert from a dictionary loaded from JSON to an Event
         """
+        device = data['device']
+        del data['device']
+        data_type = data['data_type']
+        del data['data_type']
         for key, value in data.iteritems():
             if Event.field_type(key) == FieldType.TIME:
                 data[key] = dateutil.parser.parse(value)
         sample_time = data['sample_time']
         del data['sample_time']
-        return Event(sample_time, **data)
+        return Event(device, data_type, sample_time, **data)
