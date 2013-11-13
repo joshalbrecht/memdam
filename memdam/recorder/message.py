@@ -73,5 +73,5 @@ class Message(object):
         """
         Return the body text of the email by serializing the event list
         """
-        dict_list = list(map(_.to_json_dict(), self._events))
+        dict_list = [x.to_json_dict() for x in self._events]
         return json.dumps(dict_list, indent=4, separators=(',', ': '))
