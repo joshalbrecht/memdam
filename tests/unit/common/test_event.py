@@ -11,6 +11,8 @@ def test_serialization():
     """Check that converting to and from a json dict gives the same object"""
     event = memdam.common.event.Event(
         memdam.common.time.now(),
+        "some_device",
+        "some_data_type",
         #TODO: check all supported data types here
         some_text="asdfsd",
         x_text="d")
