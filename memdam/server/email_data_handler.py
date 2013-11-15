@@ -30,14 +30,19 @@ where extension does a half-decent job of identifying the type of content
 import itertools
 import email
 import json
-import sqlite3
 
 import secure_smtpd
 
 import memdam.common.event
 
 class EmailDataHandler(secure_smtpd.SMTPServer):
-    def __init__(self, listenAddress):
+    """
+    Listens for emails.
+    Saves all events and binaries from the email into their appropriate locations.
+    """
+
+    def __init__(self, listenAddress, archive):
+        self.archive = archive
         secure_smtpd.SMTPServer.__init__(self,
             listenAddress,
             None,
@@ -47,29 +52,14 @@ class EmailDataHandler(secure_smtpd.SMTPServer):
             keyfile='/home/cow/memdam/lib/secure-smtpd/examples/server.key',
             credential_validator=secure_smtpd.FakeCredentialValidator(),
             process_count=None)
-        self.users = {username: UserData("/tmp/")}
-
-    def _table_name(self, event):
-        return event.device + "__" + event.data_type
 
     def process_message(self, peer, mailfrom, rcpttos, data):
         message = email.message_from_string(data)
-        import pdb; pdb.set_trace()
         json_data = message.get_text()
         json_events = json.loads(json_data)
         events = [memdam.common.event.Event.from_json_dict(x) for x in json_events]
-        #TODO: continue this and do stuff with blobstore
-        #binary_data = message.get_binary_data()
+        self.archive.save(events)
+        #TODO: introduce blobstore and binaries here as well
 
-        #collect all events with the same data_type/device pair
-        sorted_events = sorted(events, key=self._table_name)
-        for table_name, grouped_events in itertools.groupby(sorted_events, self._table_name):
-            self._save_events(list(grouped_events), table_name)
 
-    def _save_events(self, events, table_name):
-        conn = sqlite3.connect()
-        existing_columns = conn.execute("PRAGMA table_info(%s)", table_name)
-        key_names = set(flatten([event._keys for event in events]))
-        required_columns = self._generate_columns(key_names)
-        self._update_columns(existing_columns, required_columns)
-        self._insert_events()
+

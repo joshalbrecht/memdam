@@ -16,6 +16,12 @@ FieldType = enum('INT', 'FLOAT', 'BINARY', 'TEXT', 'TIME', 'BOOL')
 IndexType = enum('FTS', 'ASC', 'DESC')
 
 """
+:
+all events have a namespace, according to this standard:
+    datatype.device or datatype.service
+    device data types are encourage to include a device_text_fts field (same for services)
+    obviously this is for a single user, if there are multiple users then it becomes a UserEvent, and the namespace is understood to be userid.datatype.device, but that happens at a totally different future level
+    instead of deviceOrService lets just call it source
 
 how exactly to represent Events in memory?
     we want them to be simple and serializable and without any behavior
@@ -72,28 +78,36 @@ events are objects that have:
 """
 
 class Event(object):
-    def __init__(self, device, data_type, sample_time, **kwargs):
+    def __init__(self, sample_time, source, data_type, **kwargs):
         #TODO: events should be immutable and hashable
-        #TODO: validate device, data_type, and keys (allowable characters, etc)
-        self.device = device
+        #TODO: validate source, data_type, and keys (allowable characters, etc)
+        self.source = source
         self.data_type = data_type
-        self.sample_time = sample_time
-        self._keys = set()
+        self.sample_time_desc = sample_time
+        self.keys = set()
         for key, value in kwargs.items():
             #validate that the argument names and types conform to the above specification.
             Event.field_type(key)
             assert key == key.lower()
             setattr(self, key, value)
             if not isinstance(getattr(self, key), types.FunctionType):
-                self._keys.add(key)
-        self._keys.add('sample_time')
+                self.keys.add(key)
+        self.keys.add('sample_time_desc')
+
+    def get_field(self, key):
+        """
+        :param key: a key from self.keys
+        :type  key: string
+        :returns: whatever value is associated with that key
+        """
+        return getattr(self, key)
 
     def has_binary(self):
         """
         :returns: True iff any of the keys contain binary data, False otherwise
         :rtype: bool
         """
-        for key in self._keys:
+        for key in self.keys:
             if Event.field_type(key) == FieldType.BINARY:
                 return True
         return False
@@ -103,17 +117,42 @@ class Event(object):
         Turn this into a dictionary that is suitable for serialization to json
         """
         new_dict = {}
-        for key in self._keys:
+        for key in self.keys:
             value = getattr(self, key)
             if isinstance(value, datetime.datetime):
                 value = value.isoformat()
             new_dict[key] = value
         new_dict['data_type'] = self.data_type
-        new_dict['device'] = self.device
+        new_dict['source'] = self.source
         return new_dict
+
+    @property
+    def namespace(self):
+        """Returns the standard namespace for this event"""
+        return self.source + '.' + self.data_type
+
+    @property
+    def sample_time(self):
+        """An alias for sample_time_desc"""
+        return self.sample_time_desc
 
     def __eq__(self, other):
         return self.to_json_dict().__eq__(other.to_json_dict())
+
+    @staticmethod
+    def raw_name(name):
+        """
+        :param name: The name of the field to parse
+        :type  name: string
+        :returns: the name, with any type and index information stripped off
+        :rtype: string
+        :throws: Exception if the name does not conform to the above specification
+        """
+        data = name.upper().split('_')
+        if data[-1] in (IndexType.names.values()):
+            data.pop()
+        data.pop()
+        return '_'.join(data)
 
     @staticmethod
     def field_type(name):
@@ -149,8 +188,8 @@ class Event(object):
         """
         Convert from a dictionary loaded from JSON to an Event
         """
-        device = data['device']
-        del data['device']
+        source = data['source']
+        del data['source']
         data_type = data['data_type']
         del data['data_type']
         for key, value in data.iteritems():
@@ -158,4 +197,4 @@ class Event(object):
                 data[key] = dateutil.parser.parse(value)
         sample_time = data['sample_time']
         del data['sample_time']
-        return Event(device, data_type, sample_time, **data)
+        return Event(source, data_type, sample_time, **data)
