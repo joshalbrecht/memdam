@@ -126,10 +126,11 @@ class Event(object):
         new_dict['source'] = self.source
         return new_dict
 
+    #TODO: merge the source and data_type fields, doesn't make sense to have them separate. Should just be namespace or soemthing.
     @property
     def namespace(self):
         """Returns the standard namespace for this event"""
-        return self.source + '.' + self.data_type
+        return self.source + '_' + self.data_type
 
     @property
     def sample_time(self):
@@ -180,7 +181,7 @@ class Event(object):
         data = name.upper().split('_')
         index = None
         if data[-1] in (IndexType.names.values()):
-            index = data.pop()
+            index = getattr(IndexType, data.pop())
         return Option.from_value(index)
 
     @staticmethod

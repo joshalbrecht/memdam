@@ -1,11 +1,17 @@
 
+import memdam
 import memdam.common.time
 import memdam.common.event
 import memdam.server.archive.sqlite
 
 def test_save():
     """Test that events can be saved into sqlite"""
-    folder = "/tmp"
+
+    #TODO: remove once I'm satisfied that things are working correctly:
+    memdam.log = memdam.create_logger([memdam.STDOUT_HANDLER], memdam.TRACE, name='testlogger')
+
+    #folder = "/tmp"
+    folder = ":memory:"
     device = "testdevice"
     archive = memdam.server.archive.sqlite.SqliteArchive(folder)
     events = [
