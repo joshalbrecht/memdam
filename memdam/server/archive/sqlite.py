@@ -1,15 +1,18 @@
 
+import datetime
 import re
 import os
 import sqlite3
 import itertools
 
+import pytz
 from fn.iters import flatten
 
 import memdam
 import memdam.common.event
 import memdam.server.archive.archiveinterface
 
+#Just for debugging
 def execute_sql(cur, sql, args=()):
     memdam.log.trace("Executing: %s    ARGS=%s" % (sql, args))
     return cur.execute(sql, args)
@@ -68,7 +71,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         key_names = set(flatten([event.keys for event in events]))
         required_columns = self._generate_columns(cur, key_names, table_name)
         self._update_columns(cur, existing_columns, required_columns)
-        self._insert_events(cur, events)
+        self._insert_events(cur, events, key_names, table_name)
         conn.commit()
 
     def _query_existing_columns(self, cur, table_name):
@@ -147,13 +150,39 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
             else:
                 required_column.create(cur)
 
-    def _insert_events(self, cur, events):
+    def _insert_events(self, cur, events, key_names, table_name):
         """
         Insert all events at once.
         Assumes that the schema is correct.
         """
-        #TODO: have to convert datetimes into integers (longs are fine) (microseconds since some epoch I guess)
-        #http://stackoverflow.com/questions/12589952/convert-microsecond-timestamp-to-datetime-in-python
+        #TODO: what to actually call sample_time field?
+        #TODO: need to call executemany as per here: http://docs.python.org/2/library/sqlite3.html
+        key_names = list(key_names)
+        column_names = [make_column_name(x) for x in key_names]
+        column_name_string = ", ".join(column_names)
+        value_tuple_string = "(" + ", ".join(['?'] * len(column_names)) + ")"
+        values_string = ", ".join(len(events) * [value_tuple_string] )
+        sql = "INSERT INTO %s (%s) VALUES %s;" % (table_name, column_name_string, values_string)
+        values = flatten([make_value_tuple(event, key_names) for event in events])
+        execute_sql(cur, sql, values)
+
+def make_value_tuple(event, key_names):
+    """Turns an event into a sql value tuple"""
+    values = []
+    for key in key_names:
+        value = getattr(event, key)
+        if isinstance(value, datetime.datetime):
+            value = int(round(100000.0 * (value - EPOCH_BEGIN).total_seconds()))
+        values.append(value)
+    return values
+
+EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)
+
+def make_column_name(key_name):
+    """Turns an event attribute name into a sql column name"""
+    data = key_name.split("_")
+    data_type = data.pop()
+    return "_".join(data) + "__" + data_type
 
 class SqliteColumn(object):
     """
@@ -252,5 +281,4 @@ class SqliteColumn(object):
         """
         column_name = row[1]
         (name, data_type) = column_name.split("__")
-        #TODO: can we set the index info here?
         return SqliteColumn(name, getattr(memdam.common.event.FieldType, data_type.upper()), table_name, None)
