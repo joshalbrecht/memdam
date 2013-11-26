@@ -1,0 +1,94 @@
+{
+    "id": "http://github.com/joshalbrecht/memdam/master/schemas/event-schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "description": "Schema for a personal event. Events should be considered immutable.",
+    "type": "object",
+    "required": [ "time", "namespace" ],
+    "properties": {
+        "time": {
+            "$ref": "#/definitions/datetime",
+            "description": "A timestamp for when the event occurred. Microsecond precision. Please only use time stamps in UTC."
+        },
+        "user": {
+            "$ref": "#/definitions/uuid",
+            "description": "A unique identifier for the user."
+        },
+        "device": {
+            "$ref": "#/definitions/uuid",
+            "description": "A unique identifier for the device that captured this data. Generally this will be something with a network interface, in which case you should exploit that to generate the UUID in a more stable fashion, and you should persist this UUID between runs of the program on the same device."
+        },
+        "namespace": {
+            "$ref": "#/definitions/namespace",
+            "description": "Information about the type of these events and where they came from."
+        },
+        "id": {
+            "$ref": "#/definitions/uuid",
+            "description": "The unique id for this event. Should be generated randomly. If you want to overwrite an earlier event (to fix it, delete it, etc), you should use this id to refer to it, since there is no other way to identify a single event."
+        }
+    },
+    "patternProperties": {
+        "^([a-z]+_)*[a-z]+__number(__([a-z]+_)*[a-z]+){0,1}$": {
+            "type": "integer",
+            "description": "A numeric property. The second capture group (if present) should describe the units (example: 'newtons' or 'metric_tons_usd_per_degrees_celsius_miles'"
+        },
+        "^([a-z]+_)*[a-z]+__string(__([a-z]+_)*[a-z]+){0,1}$": {
+            "type": "string",
+            "description": "An unknown property, encoded as a string. The second capture group (if present) should describe the format or meaning of the string (exampe: 'gps_coordinates' or 'iso_6709')"
+        },
+        "^([a-z]+_)*[a-z]+__text$": {
+            "type": "string",
+            "description": "A property with unstructured text. Will be indexed for full text (keyword matching, lowercased, normalized) search."
+        },
+        "^([a-z]+_)*[a-z]+__enum(__([a-z]+_)*[a-z]+){0,1}$": {
+            "type": "string",
+            "description": "A property with a fixed set of values (encoded here as strings). The second capture group (if present) should uniquely identify this enum, possibly across many different event types. The existing data should be queried to get possible values for the enum when asking for human input, but should never be used to limit additional new entries."
+        },
+        "^([a-z]+_)*[a-z]+__bool$": {
+            "type": "boolean",
+            "description": "A property that is either true or false."
+        },
+        "^([a-z]+_)*[a-z]+__time$": {
+            "$ref": "#/definitions/datetime",
+            "description": "A property with time values."
+        },
+        "^([a-z]+_)*[a-z]+__id$": {
+            "$ref": "#/definitions/uuid",
+            "description": "A property with unique id values."
+        },
+        "^([a-z]+_)*[a-z]+__long$": {
+            "type": "string",
+            "pattern": "^[\-\+]{0,1}[0-9]+$",
+            "description": "A property that requires a huge integer value (beyond 2^53). Encoded as a string to prevent javascript and json from dying."
+        },
+        "^([a-z]+_)*[a-z]+__object(__([a-z]+_)*[a-z]+){0,1}$": {
+            "type": "object",
+            "description": "An unknown property, given as a json object. Use this only when it does not make sense to index the contained fields (if it does, then split them out as their own fields or generate __text fields for searching). The second capture group, if present, should define the type of the object, whicih is allowed to lead to further validation"
+        },
+        "^([a-z]+_)*[a-z]+__file$": {
+            "type": "object",
+            "oneOf": [
+                { "$ref": "#/definitions/fileData" },
+                { "$ref": "#/definitions/fileReference" }
+            ],
+            "description": "A property with binary data. The fileReference type should be preferred wherever possible. The fileData type only exists for transmitting binary data from clients to servers."
+        }
+    },
+    "additionalProperties": false,
+    "definitions": {
+        "datetime": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-1][0-9]-[0-3][0-9]T[0-6][0-9]:[0-6][0-9]:[0-6][0-9](\.[0-9]{6})?(\+[0-1][0-9]:[0-6][0-9])?$",
+            "description": "ISO 8601 format, YYYY-MM-DDTHH:MM:SS.mmmmmm+HH:MM. The microsecond and timezone offset portions are optional. If given, the timezone offset must be +00:00 (ie, all times must be in UTC)"
+        },
+        "uuid": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$",
+            "description": "A UUID. http://en.wikipedia.org/wiki/Universally_unique_identifier"
+        },
+        "namespace": {
+            "type": "string",
+            "pattern": "[a-z0-9\.]+",
+            "description": "Should be a valid java package name, following the same conventions (eg: com.domain.package). Where possible (and only if willing to conform to the same schema), try to use the standard memdam namespaces. The fields in events should be predictable given the namespace."
+        }
+    }
+}
