@@ -48,6 +48,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
 
     def __init__(self, folder):
         self.folder = folder
+        self.memory_connection = None
 
     def save(self, events):
         memdam.log.debug("Saving events")
@@ -56,14 +57,59 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
             table_name = namespace.replace(".", "_")
             self._save_events(list(grouped_events), table_name)
 
+    def find(self, query=None):
+        #TODO: filter down earlier based on namespace in query
+        events = []
+        for table_name in self._all_table_names():
+            events += self._find_matching_events_in_table(table_name, query)
+        return events
+
+    def _find_matching_events_in_table(self, table_name, query):
+        #TODO: actually respect query :(
+        conn = self._connect(table_name, 'r')
+        namespace = table_name.replace("_", ".")
+        cur = conn.cursor()
+        args = ()
+        sql = "SELECT * FROM %s;" % (table_name)
+        execute_sql(cur, sql, args)
+        events = []
+        names = list(map(lambda x: x[0], cur.description))
+        for row in cur.fetchall():
+            events.append(_create_event_from_row(row, names, namespace, conn))
+        return events
+
+    def _all_table_names(self):
+        """
+        :returns: the names of all tables
+        :rtype: list(string)
+        """
+        if self.folder == ":memory:":
+            #list all tables that are not "__docs"
+            conn = self._get_or_create_memory_connection()
+            cur = conn.cursor()
+            execute_sql(cur, "SELECT * FROM sqlite_master WHERE type='table';")
+            tables = []
+            for row in cur.fetchall():
+                table_name = row[1]
+                if not "__docs" in table_name:
+                    tables.append(table_name)
+            return tables
+        else:
+            return os.listdir(self.folder)
+
+    def _get_or_create_memory_connection(self):
+        assert self.folder == ":memory:"
+        if self.memory_connection == None:
+            self.memory_connection = sqlite3.connect(self.folder, isolation_level="EXCLUSIVE")
+        return self.memory_connection
+
     def _connect(self, table_name, mode='r'):
         """
         Connect to the database with this namespace in it.
         """
         if self.folder == ":memory:":
-            db_file = self.folder
-        else:
-            db_file = os.path.join(self.folder, table_name)
+            return self._get_or_create_memory_connection()
+        db_file = os.path.join(self.folder, table_name)
         memdam.log.trace("Connecting to %s in %s mode" % (db_file, mode))
         if mode == 'w':
             return sqlite3.connect(db_file, isolation_level="EXCLUSIVE")
@@ -195,6 +241,29 @@ def make_value_tuple(event, key_names):
 def convert_time_to_long(value):
     """turns a datetime.datetime into a long"""
     return long(round(100000.0 * (value - EPOCH_BEGIN).total_seconds()))
+
+def convert_long_to_time(value):
+    """turns a long into a datetime.datetime"""
+    return EPOCH_BEGIN + datetime.timedelta(microseconds=value)
+
+def _create_event_from_row(row, names, namespace, conn):
+    """returns a memdam.common.event.Event, generated from the row"""
+    data = {}
+    table_name = namespace.replace(".", "_")
+    for i in range(0, len(names)):
+        name = names[i]
+        value = row[i]
+        field_type = memdam.common.event.Event.field_type(name)
+        if field_type == memdam.common.event.FieldType.TIME:
+            value = convert_long_to_time(value)
+        elif field_type == memdam.common.event.FieldType.TEXT:
+            cur = conn.cursor()
+            execute_sql(cur, "SELECT data FROM %s__%s__docs WHERE docid = '%s';" % (table_name, name, value))
+            value = cur.fetchall()[0][0]
+        data[name] = value
+    sample_time = data['id__time']
+    del data['id__time']
+    return memdam.common.event.Event(sample_time, namespace, **data)
 
 EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)
 
