@@ -12,6 +12,8 @@ import memdam
 import memdam.common.event
 import memdam.server.archive.archiveinterface
 
+IndexType = memdam.common.enum.enum('FTS', 'ASC', 'DESC')
+
 #Just for debugging
 def execute_sql(cur, sql, args=()):
     memdam.log.trace("Executing: %s    ARGS=%s" % (sql, args))
