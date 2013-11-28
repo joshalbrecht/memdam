@@ -95,6 +95,9 @@ class Event(object):
     def __eq__(self, other):
         return self.to_json_dict().__eq__(other.to_json_dict())
 
+    def __hash__(self):
+        return hash(_make_hash_key(self.to_json_dict()))
+
     @property
     def time(self):
         """
@@ -165,3 +168,9 @@ class Event(object):
         namespace = data['type__namespace']
         del data['type__namespace']
         return Event(sample_time, namespace, **data)
+
+def _make_hash_key(data):
+    """recursively make a bunch of tuples out of a dict for stable hashing"""
+    if hasattr(data, '__iter__'):
+        return ((key, _make_hash_key(data[key])) for key in data)
+    return data

@@ -240,7 +240,7 @@ def make_value_tuple(event, key_names):
 
 def convert_time_to_long(value):
     """turns a datetime.datetime into a long"""
-    return long(round(100000.0 * (value - EPOCH_BEGIN).total_seconds()))
+    return long(round(1000000.0 * (value - EPOCH_BEGIN).total_seconds()))
 
 def convert_long_to_time(value):
     """turns a long into a datetime.datetime"""
