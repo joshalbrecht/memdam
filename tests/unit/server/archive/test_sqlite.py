@@ -18,6 +18,8 @@ def test_save():
         memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="tryr", x__text="g98f"),
     ]
     archive.save(events)
+    returned_events = set(archive.find())
+    assert returned_events == set(events)
 
 if __name__ == '__main__':
     test_save()
