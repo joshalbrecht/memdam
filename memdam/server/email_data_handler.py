@@ -48,18 +48,20 @@ class EmailDataHandler(secure_smtpd.SMTPServer):
             None,
             require_authentication=True,
             ssl=True,
-            certfile='/home/cow/memdam/lib/secure-smtpd/examples/server.crt',
-            keyfile='/home/cow/memdam/lib/secure-smtpd/examples/server.key',
+            certfile='/home/cow/logproject/secure-smtpd/examples/server.crt',
+            keyfile='/home/cow/logproject/secure-smtpd/examples/server.key',
             credential_validator=secure_smtpd.FakeCredentialValidator(),
             process_count=None)
 
     def process_message(self, peer, mailfrom, rcpttos, data):
         message = email.message_from_string(data)
-        json_data = message.get_text()
+        message_parts = list(message.walk())
+        #TODO: pull out all of the files and save into the blobstore and link into the events below
+        json_content_types = set(["text/plain", "text/json"])
+        possible_json_messages = [x for x in message_parts if x.get_content_type() in json_content_types]
+        assert len(possible_json_messages) == 1
+        json_message = possible_json_messages[0]
+        json_data = json_message.get_payload()
         json_events = json.loads(json_data)
         events = [memdam.common.event.Event.from_json_dict(x) for x in json_events]
         self.archive.save(events)
-        #TODO: introduce blobstore and binaries here as well
-
-
-
