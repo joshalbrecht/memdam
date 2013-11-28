@@ -3,10 +3,13 @@
 A daemon that will collect and transmit events for as many types of data as possible.
 """
 
+import logging
+
 import apscheduler.scheduler
 
 import memdam.common.event
-import memdam.common.time
+import memdam.common.timeutils
+import memdam.common.parallel
 import memdam.recorder.config
 import memdam.recorder.collector.collector
 import memdam.recorder.mailqueue
@@ -18,17 +21,24 @@ class SystemStats(memdam.recorder.collector.collector.Collector):
     """
 
     def collect(self):
-        return [memdam.common.event.Event(memdam.common.time.now(), "com.memdam.cpu", cpu__number__percent=0.2)]
+        return [memdam.common.event.Event(memdam.common.timeutils.now(), "com.memdam.cpu", cpu__number__percent=0.2)]
 
 def main():
     """Run the daemon. Blocks."""
 
     #TODO: actually read some configuration
     configFile = "/home/cow/temp.json"
+    device = "pretendThatThisIsAUUID"
     config = memdam.recorder.config.Config(configFile)
+    num_workers = 4
+    to_addresses = "user@domain.com"
+    smtp_address = ('127.0.0.1', 8465)
+
+    handlers = [memdam.STDOUT_HANDLER]
+    memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
 
     #create the queues
-    mail_queue = memdam.recorder.mailqueue.MailQueue()
+    mail_queue = memdam.recorder.mailqueue.MailQueue(num_workers, to_addresses, smtp_address)
     eventQueue = memdam.recorder.eventqueue.EventQueue(device, mail_queue)
 
     #schedule various collectors
@@ -43,7 +53,8 @@ def main():
     sched.add_cron_job(collect, second='0,10,20,30,40,50')
 
     #processes the events periodically
-    sched.add_cron_job(eventQueue.process_events, second='0,30')
+    #sched.add_cron_job(eventQueue.process_events, second='0,30')
+    sched.add_cron_job(eventQueue.process_events, second='0,10,20,30,40,50')
 
     try:
         #run until the exit signal has been recieved

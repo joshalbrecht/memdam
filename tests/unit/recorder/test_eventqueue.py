@@ -2,15 +2,15 @@
 # pylint: disable=E0611,W0611
 from nose.tools import assert_raises, assert_equals
 
-import memdam.common.time
+import memdam.common.timeutils
 import memdam.common.event
 import memdam.recorder.collector.collector
 import memdam.recorder.eventqueue
 
 DEVICE = "TempDevice"
 SIMPLE_EVENTS = [\
-    memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some__string="hello"),
-    memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some_other__string="hello again")
+    memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__string="hello"),
+    memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some_other__string="hello again")
 ]
 #TODO: populate this and finish these tests
 BINARY_EVENTS = []

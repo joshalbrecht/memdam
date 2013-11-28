@@ -13,6 +13,8 @@ from fn import _
 from fn.uniform import *
 from fn.monad import Option
 
+import memdam
+
 class Message(object):
     """
     Internal interface for passing messages around.
@@ -32,6 +34,7 @@ class Message(object):
         """
         Actually perform the sending (blocking is fine)
         """
+        memdam.log.debug("Sending message " + str(self._events))
         server = smtplib.SMTP_SSL(':'.join((str(x) for x in smtp_address)))
         server.login(username, password)
         from_address = self._device

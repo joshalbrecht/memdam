@@ -45,11 +45,11 @@ class EventQueue(object):
             pass
 
         #turn each binary event into a message
-        binary_events = filter(_.has_binary, events)
+        binary_events = list(filter(lambda x: x.has_file(), events))
         binary_messages = list(map(self._create_binary_message, binary_events))
 
         #add other events to a single message
-        simple_events = list(filter(lambda x: not x.has_binary, events))
+        simple_events = list(filter(lambda x: not x.has_file(), events))
         simple_message = Option.from_value(simple_events or None)\
             .map(lambda x: [self._create_simple_message(x)])
 

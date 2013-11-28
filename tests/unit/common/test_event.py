@@ -4,13 +4,13 @@ import json
 # pylint: disable=E0611,W0611
 from nose.tools import assert_raises, assert_equals
 
-import memdam.common.time
+import memdam.common.timeutils
 import memdam.common.event
 
 def test_serialization():
     """Check that converting to and from a json dict gives the same object"""
     event = memdam.common.event.Event(
-        memdam.common.time.now(),
+        memdam.common.timeutils.now(),
         "some.data.type",
         #TODO: check all supported data types here
         some__text="asdfsd",

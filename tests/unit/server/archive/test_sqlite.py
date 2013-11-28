@@ -1,6 +1,6 @@
 
 import memdam
-import memdam.common.time
+import memdam.common.timeutils
 import memdam.common.event
 import memdam.server.archive.sqlite
 
@@ -14,8 +14,8 @@ def test_save():
     folder = ":memory:"
     archive = memdam.server.archive.sqlite.SqliteArchive(folder)
     events = [
-        memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some__text="asdfsd", x__text="d"),
-        memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some__text="tryr", x__text="g98f"),
+        memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="asdfsd", x__text="d"),
+        memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="tryr", x__text="g98f"),
     ]
     archive.save(events)
 
