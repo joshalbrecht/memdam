@@ -12,13 +12,14 @@ import memdam
 import memdam.common.event
 import memdam.server.archive.archiveinterface
 
-IndexType = memdam.common.enum.enum('FTS', 'ASC', 'DESC')
+#IndexType = memdam.common.enum.enum('FTS', 'ASC', 'DESC')
 
 #Just for debugging
 def execute_sql(cur, sql, args=()):
     memdam.log.trace("Executing: %s    ARGS=%s" % (sql, args))
     return cur.execute(sql, args)
 
+#TODO: store UUIDs as two column integers for better space efficiency
 #TODO: validate the various bits of data--should not start or end with _, should not contain __, should only contain numbers and digits
 #also have to validate all of the things that we are inserting in a raw way
 class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
@@ -30,6 +31,19 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
     - Safety. Reduces chances of corrupting all data.
 
     Note: pass in a folder called :memory: to keep everything in memory for testing
+
+    When inserting new events, automatically creates new columns if necessary.
+    All columns are given appropriate indices (usually ASC, except in the case of TEXT, which is
+    given an FTS virtual table, and the column in the main table because an INTEGER that refers
+    to the document id in the FTS table)
+
+    Columns are created with exactly the same name as the variables.
+    Variable names uniquely define the type of the column, as well as the type of any index.
+
+    TEXT attributes will createa column that contains docid integer references in the main table,
+    AS WELL AS a second (virtual, fts4) table (name__text__docs)
+
+    Indices are named "name__type__secondary__indextype"
     """
 
     def __init__(self, folder):
@@ -38,7 +52,8 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
     def save(self, events):
         memdam.log.debug("Saving events")
         sorted_events = sorted(events, key=lambda x: x.namespace)
-        for table_name, grouped_events in itertools.groupby(sorted_events, lambda x: x.namespace):
+        for namespace, grouped_events in itertools.groupby(sorted_events, lambda x: x.namespace):
+            table_name = namespace.replace(".", "_")
             self._save_events(list(grouped_events), table_name)
 
     def _connect(self, table_name, mode='r'):
@@ -71,6 +86,11 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         cur = conn.cursor()
         existing_columns = self._query_existing_columns(cur, table_name)
         key_names = set(flatten([event.keys for event in events]))
+        #certain key names are ignored because they are stored implicity in the location of
+        #this database (user, namespace)
+        for reserved_name in ("type__namespace", "user__id"):
+            if reserved_name in key_names:
+                key_names.remove(reserved_name)
         required_columns = self._generate_columns(cur, key_names, table_name)
         self._update_columns(cur, existing_columns, required_columns)
         self._insert_events(cur, events, key_names, table_name)
@@ -94,20 +114,6 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         for row in allrows:
             col = SqliteColumn.from_row(row, table_name)
             columns[col.name] = col
-        execute_sql(cur, "PRAGMA INDEX_LIST(%s);" % (table_name,))
-        index_rows = cur.fetchall()
-        memdam.log.trace("Table %s index rows: %s" % (table_name, allrows,))
-        for row in index_rows:
-            index_name = row[1]
-            execute_sql(cur, "PRAGMA index_info(%s)" % (index_name,))
-            column_in_index_rows = cur.fetchall()
-            column_components = index_name.split("__")
-            #remove table name
-            column_components.pop(0)
-            index_type = column_components.pop()
-            name = column_components[0]
-            memdam.log.trace("Table %s column %s has an index of type %s" % (table_name, name, index_type,))
-            columns[name].index_type = getattr(memdam.common.event.IndexType, index_type.upper())
         return columns
 
     def _create_table(self, cur, table_name):
@@ -115,8 +121,8 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         Create a table with the default column (sample_time)
         """
         memdam.log.trace("Creating default column for %s" % (table_name,))
-        execute_sql(cur, "CREATE TABLE %s(sample__time INTEGER PRIMARY KEY);" % (table_name,))
-        execute_sql(cur, "CREATE INDEX %s__sample__time__desc ON %s (sample__time DESC);" % (table_name, table_name))
+        execute_sql(cur, "CREATE TABLE %s(id__time INTEGER PRIMARY KEY);" % (table_name,))
+        execute_sql(cur, "CREATE INDEX %s__id__time__asc ON %s (id__time ASC);" % (table_name, table_name))
 
     def _generate_columns(self, cur, key_names, table_name):
         """
@@ -129,10 +135,10 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         """
         columns = []
         for key in key_names:
+            #all other keys are stored in their canonical named form
             field_type = memdam.common.event.Event.field_type(key)
-            index_type = memdam.common.event.Event.index_type_option(key).get_or(None)
             raw_name = memdam.common.event.Event.raw_name(key)
-            columns.append(SqliteColumn(raw_name, field_type, table_name, index_type))
+            columns.append(SqliteColumn(raw_name, field_type, table_name))
         return columns
 
     def _update_columns(self, cur, existing_column_map, required_columns):
@@ -147,8 +153,6 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
             if required_column.name in existing_column_map:
                 existing_column = existing_column_map[required_column.name]
                 assert required_column.sql_type == existing_column.sql_type
-                if required_column.index_type != existing_column.index_type:
-                    required_column.create_index(cur)
             else:
                 required_column.create(cur)
 
@@ -157,34 +161,42 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         Insert all events at once.
         Assumes that the schema is correct.
         """
-        #TODO: what to actually call sample_time field?
-        #TODO: need to call executemany as per here: http://docs.python.org/2/library/sqlite3.html
-        key_names = list(key_names)
-        column_names = [make_column_name(x) for x in key_names]
+        #need to insert text documents into separate docs tables
+        for key in key_names:
+            if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
+                sql = "INSERT INTO %s__%s__docs (docid,data) VALUES (?,?);" % (table_name, key)
+                values = [(convert_time_to_long(event.time), getattr(event, key)) for event in events]
+                memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
+                cur.executemany(sql, values)
+
+        #finally, insert the actual events into the main table
+        column_names = list(key_names)
         column_name_string = ", ".join(column_names)
         value_tuple_string = "(" + ", ".join(['?'] * len(column_names)) + ")"
-        values_string = ", ".join(len(events) * [value_tuple_string] )
-        sql = "INSERT INTO %s (%s) VALUES %s;" % (table_name, column_name_string, values_string)
-        values = flatten([make_value_tuple(event, key_names) for event in events])
-        execute_sql(cur, sql, values)
+        sql = "INSERT INTO %s (%s) VALUES %s;" % (table_name, column_name_string, value_tuple_string)
+        values = [make_value_tuple(event, key_names) for event in events]
+        memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
+        cur.executemany(sql, values)
 
 def make_value_tuple(event, key_names):
     """Turns an event into a sql value tuple"""
     values = []
     for key in key_names:
         value = getattr(event, key)
+        #convert time to long for more efficient storage (and so it can be used as a primary key)
         if isinstance(value, datetime.datetime):
-            value = int(round(100000.0 * (value - EPOCH_BEGIN).total_seconds()))
+            value = convert_time_to_long(value)
+        #convert text tuple entries into references to the actual text data
+        elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
+            value = convert_time_to_long(event.time)
         values.append(value)
     return values
 
-EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)
+def convert_time_to_long(value):
+    """turns a datetime.datetime into a long"""
+    return long(round(100000.0 * (value - EPOCH_BEGIN).total_seconds()))
 
-def make_column_name(key_name):
-    """Turns an event attribute name into a sql column name"""
-    data = key_name.split("_")
-    data_type = data.pop()
-    return "_".join(data) + "__" + data_type
+EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)
 
 class SqliteColumn(object):
     """
@@ -197,54 +209,50 @@ class SqliteColumn(object):
     :type data_type: memdam.common.event.FieldType
     :attr table_name: the name of the table. The namespace for the events
     :type table_name: string
-    :attr index_type: the type of the index
-    :type index_type: memdam.common.event.IndexType
     """
 
     data_type_to_sql_type = {
-        memdam.common.event.FieldType.INT: 'INTEGER',
-        memdam.common.event.FieldType.FLOAT: 'FLOAT',
-        memdam.common.event.FieldType.BINARY: 'TEXT',
-        memdam.common.event.FieldType.TEXT: 'TEXT',
-        memdam.common.event.FieldType.TIME: 'INTEGER',
+        memdam.common.event.FieldType.NUMBER: 'FLOAT',
+        memdam.common.event.FieldType.STRING: 'TEXT',
+        #this might seems strange, but it's because we store an index to a document in another table
+        memdam.common.event.FieldType.TEXT: 'INTEGER',
+        memdam.common.event.FieldType.ENUM: 'TEXT',
         memdam.common.event.FieldType.BOOL: 'BOOL',
-    }
-    index_type_to_sql_type = {
-        memdam.common.event.IndexType.FTS: 'FTS',
-        memdam.common.event.IndexType.ASC: 'ASC',
-        memdam.common.event.IndexType.DESC: 'DESC',
+        memdam.common.event.FieldType.TIME: 'INTEGER',
+        memdam.common.event.FieldType.ID: 'TEXT',
+        memdam.common.event.FieldType.LONG: 'INTEGER',
+        memdam.common.event.FieldType.FILE: 'TEXT',
+        memdam.common.event.FieldType.NAMESPACE: 'TEXT',
     }
 
-    def __init__(self, name, data_type, table_name, index_type=None):
+    def __init__(self, name, data_type, table_name):
         assert re.compile(r"[a-z][a-z_]*").match(name.lower()), "Should only use a-z and '_' in namespaces"
         self.name = name.lower()
         self.data_type = data_type
         self.table_name = table_name.lower()
-        self.index_type = index_type
+
+    @property
+    def is_text(self):
+        """
+        :returns: True iff this is a text "column", which must be handled specially
+        """
+        return self.data_type == memdam.common.event.FieldType.TEXT
 
     def create(self, cur):
         """
         Create the column and index.
         Only call if the column and index don't already exist.
         """
+        if self.is_text:
+            execute_sql(cur, "CREATE VIRTUAL TABLE %s__%s__docs USING fts4(data,tokenize=porter);" % (self.table_name, self.column_name))
         execute_sql(cur, "ALTER TABLE %s ADD COLUMN %s %s;" % (self.table_name, self.column_name, self.sql_type))
-        self.create_index(cur)
-
-    def create_index(self, cur):
-        """
-        Create the index, if defined.
-        Only call if the index doesn't already exist.
-        """
-        if self.sql_index != None:
-            index_name = self.table_name + "__" + self.column_name + "__" + self.sql_index
-            execute_sql(cur, "CREATE INDEX %s ON %s (%s %s);" % (index_name, self.table_name, self.column_name, self.sql_index))
+        assert self.sql_index != None
+        index_name = self.table_name + "__" + self.column_name + "__" + self.sql_index
+        execute_sql(cur, "CREATE INDEX %s ON %s (%s %s);" % (index_name, self.table_name, self.column_name, self.sql_index))
 
     def __repr__(self):
         data_type_name = memdam.common.event.FieldType.names[self.data_type]
-        index_type_name = "None"
-        if self.index_type != None:
-            index_type_name = memdam.common.event.IndexType.names[self.index_type]
-        return "SqliteColumn(%s/%s/%s/%s)" % (self.table_name, self.name, data_type_name, index_type_name)
+        return "SqliteColumn(%s/%s/%s)" % (self.table_name, self.name, data_type_name)
 
     def __str__(self):
         return self.__repr__()
@@ -260,12 +268,12 @@ class SqliteColumn(object):
     @property
     def sql_index(self):
         """
-        :returns: the sqlite type corresponding to our index_type
+        Note: everything returns ASC because the only alternative is FTS, which is handled specially
+        and ends up making an ASC index on the column anyway.
+        :returns: the sqlite type corresponding to our index type
         :rtype: string
         """
-        if self.index_type == None:
-            return None
-        return self.index_type_to_sql_type[self.index_type]
+        return 'ASC'
 
     @property
     def column_name(self):
@@ -283,4 +291,4 @@ class SqliteColumn(object):
         """
         column_name = row[1]
         (name, data_type) = column_name.split("__")
-        return SqliteColumn(name, getattr(memdam.common.event.FieldType, data_type.upper()), table_name, None)
+        return SqliteColumn(name, getattr(memdam.common.event.FieldType, data_type.upper()), table_name)

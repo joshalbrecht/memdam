@@ -6,6 +6,7 @@ A daemon that will collect and transmit events for as many types of data as poss
 import apscheduler.scheduler
 
 import memdam.common.event
+import memdam.common.time
 import memdam.recorder.config
 import memdam.recorder.collector.collector
 import memdam.recorder.mailqueue
@@ -17,7 +18,7 @@ class SystemStats(memdam.recorder.collector.collector.Collector):
     """
 
     def collect(self):
-        return [memdam.common.event.Event(cpu_usage=0.2)]
+        return [memdam.common.event.Event(memdam.common.time.now(), "com.memdam.cpu", cpu__number__percent=0.2)]
 
 def main():
     """Run the daemon. Blocks."""

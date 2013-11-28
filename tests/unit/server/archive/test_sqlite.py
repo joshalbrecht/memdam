@@ -12,11 +12,10 @@ def test_save():
 
     #folder = "/tmp"
     folder = ":memory:"
-    device = "testdevice"
     archive = memdam.server.archive.sqlite.SqliteArchive(folder)
     events = [
-        memdam.common.event.Event(memdam.common.time.now(), device, "somedatatype", some_text="asdfsd", x_text="d"),
-        memdam.common.event.Event(memdam.common.time.now(), device, "somedatatype", some_text="tryr", x_text="g98f"),
+        memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some__text="asdfsd", x__text="d"),
+        memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some__text="tryr", x__text="g98f"),
     ]
     archive.save(events)
 

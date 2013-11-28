@@ -7,7 +7,7 @@ from fn.monad import Option
 
 import memdam.common.enum
 
-FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE')
+FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
 
 class Event(object):
     """
@@ -17,11 +17,11 @@ class Event(object):
 
     There are two required parameters:
 
-    :attr time: The time at which this Event happened
-    :type time: datetime.datetime
-    :attr namespace: A specially formatted string that effectively maps to the expected schema for
+    :attr time__id: The time at which this Event happened
+    :type time__id: datetime.datetime
+    :attr type__namespace: A specially formatted string that effectively maps to the expected schema for
     the rest of the Event field. Reverse domain like java packages. Ex: com.memdam.email
-    :type namespace: string
+    :type type__namespace: string
 
     All other parameters are dynamic, and follow the form:
     ^(?P=name)__(?P=type)(__(?P=secondary_type))?$
@@ -44,19 +44,15 @@ class Event(object):
     the string (ex: iso_3679)
     """
 
-    SPECIAL_NAME_TYPES = {
-        'time': FieldType.TIME,
-        'namespace': FieldType.STRING,
-        'id': FieldType.ID,
-        'source': FieldType.ID,
-        'user': FieldType.ID,
-    }
-
     def __init__(self, sample_time, namespace, **kwargs):
         #TODO: events should be immutable and hashable
         #TODO: validate all keys (allowable characters, correct type, no overlap with top level, etc)
-        self.namespace = namespace
-        self.time = sample_time
+        self.id__time = None
+        self.type__namespace = None
+        assert 'id__time' not in kwargs
+        assert 'type__namespace' not in kwargs
+        kwargs['id__time'] = sample_time
+        kwargs['type__namespace'] = namespace
         self.keys = set()
         for key, value in kwargs.items():
             #validate that the argument names and types conform to the above specification.
@@ -65,8 +61,6 @@ class Event(object):
             setattr(self, key, value)
             if not isinstance(getattr(self, key), types.FunctionType):
                 self.keys.add(key)
-        self.keys.add('time')
-        self.keys.add('namespace')
 
     def get_field(self, key):
         """
@@ -101,6 +95,24 @@ class Event(object):
     def __eq__(self, other):
         return self.to_json_dict().__eq__(other.to_json_dict())
 
+    @property
+    def time(self):
+        """
+        Just a shortcut for id__time
+        :returns: the time that this Event occurred
+        :rtype: datetime.datetime
+        """
+        return self.id__time
+
+    @property
+    def namespace(self):
+        """
+        Just a shortcut for type__namespace
+        :returns: the namespace for this event
+        :rtype: string
+        """
+        return self.type__namespace
+
     @staticmethod
     def raw_name(name):
         """
@@ -121,8 +133,6 @@ class Event(object):
         :rtype: FieldType
         :throws: Exception if the name does not conform to the above specification
         """
-        if name in Event.SPECIAL_NAME_TYPES:
-            return Event.SPECIAL_NAME_TYPES[name]
         data = name.upper().split('__')
         type_name = data[1]
         return getattr(FieldType, type_name)
@@ -136,8 +146,6 @@ class Event(object):
         no secondary type)
         :rtype: Option(secondaryType)
         """
-        if name in Event.SPECIAL_NAME_TYPES:
-            return Option.from_value(None)
         data = name.upper().split('__')
         if len(data) > 2:
             return Option.from_value(data.pop())
@@ -152,8 +160,8 @@ class Event(object):
         for key in keys:
             if Event.field_type(key) == FieldType.TIME:
                 data[key] = dateutil.parser.parse(data[key])
-        sample_time = data['time']
-        del data['time']
-        namespace = data['namespace']
-        del data['namespace']
+        sample_time = data['id__time']
+        del data['id__time']
+        namespace = data['type__namespace']
+        del data['type__namespace']
         return Event(sample_time, namespace, **data)

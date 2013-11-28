@@ -9,8 +9,8 @@ import memdam.recorder.eventqueue
 
 DEVICE = "TempDevice"
 SIMPLE_EVENTS = [\
-    memdam.common.event.Event(memdam.common.time.now(), DEVICE, "somedatatype", some_string="hello"),
-    memdam.common.event.Event(memdam.common.time.now(), DEVICE, "somedatatype", some_other_string="hello again")
+    memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some__string="hello"),
+    memdam.common.event.Event(memdam.common.time.now(), "somedatatype", some_other__string="hello again")
 ]
 #TODO: populate this and finish these tests
 BINARY_EVENTS = []
