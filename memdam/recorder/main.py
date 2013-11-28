@@ -53,8 +53,7 @@ def main():
     sched.add_cron_job(collect, second='0,10,20,30,40,50')
 
     #processes the events periodically
-    #sched.add_cron_job(eventQueue.process_events, second='0,30')
-    sched.add_cron_job(eventQueue.process_events, second='0,10,20,30,40,50')
+    sched.add_cron_job(eventQueue.process_events, second='0,30')
 
     try:
         #run until the exit signal has been recieved
