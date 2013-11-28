@@ -5,85 +5,54 @@ import datetime
 import dateutil.parser
 from fn.monad import Option
 
-def enum(*sequential, **named):
-    """Create an enum in python < 3.4"""
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.iteritems())
-    enums['names'] = reverse
-    return type('Enum', (), enums)
+import memdam.common.enum
 
-FieldType = enum('INT', 'FLOAT', 'BINARY', 'TEXT', 'TIME', 'BOOL')
-IndexType = enum('FTS', 'ASC', 'DESC')
-
-"""
-:
-all events have a namespace, according to this standard:
-    datatype.device or datatype.service
-    device data types are encourage to include a device_text_fts field (same for services)
-    obviously this is for a single user, if there are multiple users then it becomes a UserEvent, and the namespace is understood to be userid.datatype.device, but that happens at a totally different future level
-    instead of deviceOrService lets just call it source
-
-how exactly to represent Events in memory?
-    we want them to be simple and serializable and without any behavior
-    but they also need to refer to files somehow (storing the entire thing in memory is too inefficient)
-    choices:
-            store everything related to the event in memory
-                    bad because that's huge and broken
-            store ONLY the data that is persisted
-                    let's do this.
-                    binaries are thus just stored in memory as UUIDs
-                    to really use an event, you need to have some separate blobstore that allows you to read and write the binaries
-                            can actually even use the same one on the client and server side
-                            except that on the client side we always delete the data when finished sending, and on the server side they are NEVER deleted
-                            note that the extension is NOT stored, so we are free to convert types, or even store redundant forms, etc
-                                    will have to decide about this later
-            store different things at different times
-            give the event behavior that allows it to access the binary data
-
-
-events are just json objects with a pretty flat structure
-events are objects that have:
-    required: sample_time: when the event was recorded. This value is valid between (sample_time - data_window_millis_int, sample_time] if data_window_size is defined
-        This, being an integer, is the primary key because you cannot have two events at the same time, which is already stored for every row anyway as the rowid, so this is as efficient as possible
-    optional: all other columns.
-        If any are new when inserting, alter table to add the columns
-        full specification of column names:
-            all names are match: ([a-z_]*)_(int|float|binary|text|time|bool)(_(fts|asc|desc))*
-            the first group is the name of the column
-            the second group is the type of the column
-                int: 8 byte integer
-                float: 8 byte floating point number
-                binary: stored as 16 bytes for a UUID. Events should represent this as a file path internally, with the name UUID.ext
-                text: text, variable length, per SQLITE definition
-                time: integer. will be stored as the number of milliseconds since UTC start. may be negative if the time is in the past
-                bool: boolean. will be stored as an integer
-            the third group is optional, and defines what indices to create:
-                fts: a FTS4 index for text search. the type must be text
-                asc: an ascending index.
-                desc: a descending index. Should use this more often, since queries will likely be for more recent data than for super old data.
-        examples of optional columns (these are pretty standard):
-            (none): implies that this is a "counter" data type. Is recorded whenever we notice it happening, and that is it.
-            value_text_fts: searchable text. may be further json for additional processing if you really want. can be large (a whole document). stored as ascii so that it can be lower case searched without changing the case of the data? Also often serves as a "string" version of "value"
-            value_real: a numerical measurement
-            value_int: special case of the above when this is always going to fit in a long
-            data_window_millis_int: the period over which "value" was sampled. number of milliseconds.
-            value_binary: special absolute file path (in code), UUID only in sql
-        examples of less common possibilities:
-            Imagine location: want to save two ints for mouse position: x_int and y_int
-            or GPS location: lat_int  and long_int
-            or semantic location: location_text_fts
-            or postal location: street_text, state_text, zip_text, etc
-            or a different searchable field: name_text_fts
-
-"""
+FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
 
 class Event(object):
-    def __init__(self, sample_time, source, data_type, **kwargs):
+    """
+    The class that represents all events.
+
+    All events are immutable and hash properly.
+
+    There are two required parameters:
+
+    :attr time__id: The time at which this Event happened
+    :type time__id: datetime.datetime
+    :attr type__namespace: A specially formatted string that effectively maps to the expected schema for
+    the rest of the Event field. Reverse domain like java packages. Ex: com.memdam.email
+    :type type__namespace: string
+
+    All other parameters are dynamic, and follow the form:
+    ^(?P=name)__(?P=type)(__(?P=secondary_type))?$
+
+    Where all named groups match:
+    ^([a-z]+_)*[a-z]+$
+
+    The `name` group is the actual name of the attribute.
+    Two attributes may have the same name, but they must have a different type and/or secondary_name.
+
+    The `type` group refers to a fixed set of acceptable data types.
+    All attributes must have one defined.
+    See `FieldType` above for the list of acceptable values (will be lowercased here).
+    See the json event-schema for further details on each type.
+
+    The `secondary_type` is optional, and will only ever be defined for NUMBER or STRING types.
+    In the case of NUMBER types, `secondary_type` refers to the units of the measurement (ex:
+    newtons, inches, etc).
+    In the case of STRING types, `secondary_type` refers to the encoding standard used to generate
+    the string (ex: iso_3679)
+    """
+
+    def __init__(self, sample_time, namespace, **kwargs):
         #TODO: events should be immutable and hashable
-        #TODO: validate source, data_type, and keys (allowable characters, etc)
-        self.source = source
-        self.data_type = data_type
-        self.sample_time_desc = sample_time
+        #TODO: validate all keys (allowable characters, correct type, no overlap with top level, etc)
+        self.id__time = None
+        self.type__namespace = None
+        assert 'id__time' not in kwargs
+        assert 'type__namespace' not in kwargs
+        kwargs['id__time'] = sample_time
+        kwargs['type__namespace'] = namespace
         self.keys = set()
         for key, value in kwargs.items():
             #validate that the argument names and types conform to the above specification.
@@ -92,7 +61,6 @@ class Event(object):
             setattr(self, key, value)
             if not isinstance(getattr(self, key), types.FunctionType):
                 self.keys.add(key)
-        self.keys.add('sample_time_desc')
 
     def get_field(self, key):
         """
@@ -102,13 +70,13 @@ class Event(object):
         """
         return getattr(self, key)
 
-    def has_binary(self):
+    def has_file(self):
         """
         :returns: True iff any of the keys contain binary data, False otherwise
         :rtype: bool
         """
         for key in self.keys:
-            if Event.field_type(key) == FieldType.BINARY:
+            if Event.field_type(key) == FieldType.FILE:
                 return True
         return False
 
@@ -122,23 +90,28 @@ class Event(object):
             if isinstance(value, datetime.datetime):
                 value = value.isoformat()
             new_dict[key] = value
-        new_dict['data_type'] = self.data_type
-        new_dict['source'] = self.source
         return new_dict
-
-    #TODO: merge the source and data_type fields, doesn't make sense to have them separate. Should just be namespace or soemthing.
-    @property
-    def namespace(self):
-        """Returns the standard namespace for this event"""
-        return self.source + '_' + self.data_type
-
-    @property
-    def sample_time(self):
-        """An alias for sample_time_desc"""
-        return self.sample_time_desc
 
     def __eq__(self, other):
         return self.to_json_dict().__eq__(other.to_json_dict())
+
+    @property
+    def time(self):
+        """
+        Just a shortcut for id__time
+        :returns: the time that this Event occurred
+        :rtype: datetime.datetime
+        """
+        return self.id__time
+
+    @property
+    def namespace(self):
+        """
+        Just a shortcut for type__namespace
+        :returns: the namespace for this event
+        :rtype: string
+        """
+        return self.type__namespace
 
     @staticmethod
     def raw_name(name):
@@ -149,11 +122,7 @@ class Event(object):
         :rtype: string
         :throws: Exception if the name does not conform to the above specification
         """
-        data = name.upper().split('_')
-        if data[-1] in (IndexType.names.values()):
-            data.pop()
-        data.pop()
-        return '_'.join(data)
+        return name.split('__')[0]
 
     @staticmethod
     def field_type(name):
@@ -164,38 +133,35 @@ class Event(object):
         :rtype: FieldType
         :throws: Exception if the name does not conform to the above specification
         """
-        data = name.upper().split('_')
-        if data[-1] in (IndexType.names.values()):
-            data.pop()
-        type_name = data.pop()
+        data = name.upper().split('__')
+        type_name = data[1]
         return getattr(FieldType, type_name)
 
     @staticmethod
-    def index_type_option(name):
+    def secondary_type_option(name):
         """
         :param name: The name of the field to parse
         :type  name: string
-        :returns: an Option of the IndexType for a field with the given name
-        :rtype: Option(IndexType)
+        :returns: an Option of the secondary type for a field with the given name (empty if there is
+        no secondary type)
+        :rtype: Option(secondaryType)
         """
-        data = name.upper().split('_')
-        index = None
-        if data[-1] in (IndexType.names.values()):
-            index = getattr(IndexType, data.pop())
-        return Option.from_value(index)
+        data = name.upper().split('__')
+        if len(data) > 2:
+            return Option.from_value(data.pop())
+        return Option.from_value(None)
 
     @staticmethod
     def from_json_dict(data):
         """
         Convert from a dictionary loaded from JSON to an Event
         """
-        source = data['source']
-        del data['source']
-        data_type = data['data_type']
-        del data['data_type']
-        for key, value in data.iteritems():
+        keys = list(data.keys())
+        for key in keys:
             if Event.field_type(key) == FieldType.TIME:
-                data[key] = dateutil.parser.parse(value)
-        sample_time = data['sample_time']
-        del data['sample_time']
-        return Event(source, data_type, sample_time, **data)
+                data[key] = dateutil.parser.parse(data[key])
+        sample_time = data['id__time']
+        del data['id__time']
+        namespace = data['type__namespace']
+        del data['type__namespace']
+        return Event(sample_time, namespace, **data)

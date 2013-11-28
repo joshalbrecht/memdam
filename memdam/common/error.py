@@ -2,6 +2,7 @@
 #!/usr/bin/python
 """Report errors with HTML emails that show everything necessary to debug."""
 
+import time
 import sys
 import re
 import os
@@ -10,6 +11,7 @@ import json
 import socket
 import threading
 import webbrowser
+import traceback
 
 import memdam
 import memdam.common.idebug
@@ -17,10 +19,9 @@ import memdam.common.idebug
 memdam.common.idebug.listen()
 
 def report(e):
-  import traceback
   exc_info = sys.exc_info()
 
-  htmlContent = get_error_html(e)
+  htmlContent = get_error_html(e, exc_info)
   textContent = '\n'.join(traceback.format_exception(*exc_info))
 
   memdam.log.error(textContent)
@@ -31,7 +32,8 @@ def report(e):
     html_file.write(htmlContent)
     html_file.close()
     webbrowser.open_new_tab("file://%s" % (filename))
-    raise e
+    #just so that it doesn't pop up a million windows
+    time.sleep(30.0)
   else:
     send_email(memdam.config.mandrill_key, textContent, htmlContent)
 
@@ -107,7 +109,7 @@ def create_html_mail (sender, recipient, html, text, subject):
   out.close()
   return msg
 
-def get_error_html(e):
+def get_error_html(e, exc_info):
   import operator
   import cgi
   from pprint import pformat
@@ -120,7 +122,7 @@ def get_error_html(e):
     except Exception, e:
       return "Error in formatting: %s" % str(e)
 
-  (exc_type, exc_value, tb) = sys.exc_info()
+  (exc_type, exc_value, tb) = exc_info
   frames = get_traceback_frames(tb)
   htmlBody = ""
   for frame in frames:

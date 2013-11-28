@@ -3,27 +3,23 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "description": "Schema for a personal event. Events should be considered immutable.",
     "type": "object",
-    "required": [ "time", "namespace" ],
+    "required": [ "id__time", "type__namespace" ],
     "properties": {
-        "time": {
+        "id__time": {
             "$ref": "#/definitions/datetime",
-            "description": "A timestamp for when the event occurred. Microsecond precision. Please only use time stamps in UTC."
+            "description": "A timestamp for when the event occurred. Microsecond precision. Please only use time stamps in UTC. Note that this IS the unique id for the event! If you want to overwrite an earlier event (to fix it, delete it, etc), you should use this id to refer to it, since there is no other way to identify a single event."
         },
-        "user": {
-            "$ref": "#/definitions/uuid",
-            "description": "A unique identifier for the user."
-        },
-        "device": {
-            "$ref": "#/definitions/uuid",
-            "description": "A unique identifier for the device that captured this data. Generally this will be something with a network interface, in which case you should exploit that to generate the UUID in a more stable fashion, and you should persist this UUID between runs of the program on the same device."
-        },
-        "namespace": {
+        "type__namespace": {
             "$ref": "#/definitions/namespace",
             "description": "Information about the type of these events and where they came from."
         },
-        "id": {
+        "user__id": {
             "$ref": "#/definitions/uuid",
-            "description": "The unique id for this event. Should be generated randomly. If you want to overwrite an earlier event (to fix it, delete it, etc), you should use this id to refer to it, since there is no other way to identify a single event."
+            "description": "A unique identifier for the user. Often simply left out for efficiency reasons and because the user is obviously you."
+        },
+        "source__id": {
+            "$ref": "#/definitions/uuid",
+            "description": "A unique identifier for the device or service that captured this data. Generally this will be something with a network interface, in which case you should exploit that to generate the UUID in a more stable fashion, and you should persist this UUID between runs of the program on the same device. Alternatively there will be a domain name (for a service), which again should be used to create the uuid. In the future, this device information should also be written, as a separate time series."
         }
     },
     "patternProperties": {
@@ -47,6 +43,10 @@
             "type": "boolean",
             "description": "A property that is either true or false."
         },
+        "^([a-z]+_)*[a-z]+__namespace$": {
+            "$ref": "#/definitions/namespace",
+            "description": "A package name (like java package names, but no numbers or underscores.)"
+        },
         "^([a-z]+_)*[a-z]+__time$": {
             "$ref": "#/definitions/datetime",
             "description": "A property with time values."
@@ -59,10 +59,6 @@
             "type": "string",
             "pattern": "^[\-\+]{0,1}[0-9]+$",
             "description": "A property that requires a huge integer value (beyond 2^53). Encoded as a string to prevent javascript and json from dying."
-        },
-        "^([a-z]+_)*[a-z]+__object(__([a-z]+_)*[a-z]+){0,1}$": {
-            "type": "object",
-            "description": "An unknown property, given as a json object. Use this only when it does not make sense to index the contained fields (if it does, then split them out as their own fields or generate __text fields for searching). The second capture group, if present, should define the type of the object, whicih is allowed to lead to further validation"
         },
         "^([a-z]+_)*[a-z]+__file$": {
             "type": "object",

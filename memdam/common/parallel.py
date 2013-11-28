@@ -20,6 +20,7 @@ def setup_log(name, level=logging.WARN, handlers=None, queue=None):
     :param is_parent: True iff this is the main process, False otherwise
     :type  is_parent: bool
     """
+    logging.basicConfig()
     if queue == None:
         queue = multiprocessing.Queue(-1)
         handler = memdam.common.log.ParentLogHandler(handlers, queue)

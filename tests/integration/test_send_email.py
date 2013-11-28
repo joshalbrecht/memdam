@@ -7,7 +7,7 @@ import logging
 import time
 
 import memdam
-import memdam.common.time
+import memdam.common.timeutils
 import memdam.common.event
 import memdam.recorder.message
 import memdam.recorder.mailqueue
@@ -43,8 +43,8 @@ def test_send_and_receive_email():
     mail_queue = memdam.recorder.mailqueue.MailQueue(4, ["someone@somewhere.com"], ADDRESS)
     #send an email
     events = [
-        memdam.common.event.Event(memdam.common.time.now(), DEVICE, "somedatatype", some_text="asdfsd", x_text="d"),
-        memdam.common.event.Event(memdam.common.time.now(), DEVICE, "somedatatype", some_text="tryr", x_text="g98f"),
+        memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="asdfsd", x__text="d"),
+        memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="tryr", x__text="g98f"),
     ]
     message = memdam.recorder.message.Message(DEVICE, events)
     mail_queue.add_message(message)
