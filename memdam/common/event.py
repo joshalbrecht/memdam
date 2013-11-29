@@ -55,12 +55,13 @@ class Event(object):
         kwargs['type__namespace'] = namespace
         self.keys = set()
         for key, value in kwargs.items():
-            #validate that the argument names and types conform to the above specification.
-            Event.field_type(key)
-            assert key == key.lower()
-            setattr(self, key, value)
-            if not isinstance(getattr(self, key), types.FunctionType):
-                self.keys.add(key)
+            if value != None:
+                #validate that the argument names and types conform to the above specification.
+                Event.field_type(key)
+                assert key == key.lower()
+                setattr(self, key, value)
+                if not isinstance(getattr(self, key), types.FunctionType):
+                    self.keys.add(key)
 
     def get_field(self, key):
         """

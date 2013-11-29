@@ -4,6 +4,8 @@ import memdam.common.timeutils
 import memdam.common.event
 import memdam.server.archive.sqlite
 
+NAMESPACE = "somedatatype"
+
 def test_save():
     """Test that events can be saved into sqlite"""
 
@@ -13,9 +15,11 @@ def test_save():
     #folder = "/tmp"
     folder = ":memory:"
     archive = memdam.server.archive.sqlite.SqliteArchive(folder)
+    sample_time = memdam.common.timeutils.now
     events = [
-        memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="asdfsd", x__text="d"),
-        memdam.common.event.Event(memdam.common.timeutils.now(), "somedatatype", some__text="tryr", x__text="g98f"),
+        memdam.common.event.Event(sample_time(), NAMESPACE, cpu__number__percent=0.567),
+        memdam.common.event.Event(sample_time(), NAMESPACE, some__text="tryr", x__text="g98f"),
+        memdam.common.event.Event(sample_time(), NAMESPACE, some__text="asdfsd", x__text="d"),
     ]
     archive.save(events)
     returned_events = set(archive.find())
