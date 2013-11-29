@@ -181,13 +181,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         :type  key_names: set(string)
         :returns: a list of SqliteColumn's
         """
-        columns = []
-        for key in key_names:
-            #all other keys are stored in their canonical named form
-            field_type = memdam.common.event.Event.field_type(key)
-            raw_name = memdam.common.event.Event.raw_name(key)
-            columns.append(SqliteColumn(raw_name, field_type, table_name))
-        return columns
+        return [SqliteColumn(key, table_name) for key in key_names]
 
     def _update_columns(self, cur, existing_column_map, required_columns):
         """
@@ -213,7 +207,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         for key in key_names:
             if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
                 sql = "INSERT INTO %s__%s__docs (docid,data) VALUES (?,?);" % (table_name, key)
-                values = [(convert_time_to_long(event.time), getattr(event, key)) for event in events]
+                values = [(convert_time_to_long(event.time), getattr(event, key, None)) for event in events]
                 memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
                 cur.executemany(sql, values)
 
@@ -230,13 +224,14 @@ def make_value_tuple(event, key_names):
     """Turns an event into a sql value tuple"""
     values = []
     for key in key_names:
-        value = getattr(event, key)
-        #convert time to long for more efficient storage (and so it can be used as a primary key)
-        if isinstance(value, datetime.datetime):
-            value = convert_time_to_long(value)
-        #convert text tuple entries into references to the actual text data
-        elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
-            value = convert_time_to_long(event.time)
+        value = getattr(event, key, None)
+        if value != None:
+            #convert time to long for more efficient storage (and so it can be used as a primary key)
+            if isinstance(value, datetime.datetime):
+                value = convert_time_to_long(value)
+            #convert text tuple entries into references to the actual text data
+            elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
+                value = convert_time_to_long(event.time)
         values.append(value)
     return values
 
@@ -255,13 +250,14 @@ def _create_event_from_row(row, names, namespace, conn):
     for i in range(0, len(names)):
         name = names[i]
         value = row[i]
-        field_type = memdam.common.event.Event.field_type(name)
-        if field_type == memdam.common.event.FieldType.TIME:
-            value = convert_long_to_time(value)
-        elif field_type == memdam.common.event.FieldType.TEXT:
-            cur = conn.cursor()
-            execute_sql(cur, "SELECT data FROM %s__%s__docs WHERE docid = '%s';" % (table_name, name, value))
-            value = cur.fetchall()[0][0]
+        if value != None:
+            field_type = memdam.common.event.Event.field_type(name)
+            if field_type == memdam.common.event.FieldType.TIME:
+                value = convert_long_to_time(value)
+            elif field_type == memdam.common.event.FieldType.TEXT:
+                cur = conn.cursor()
+                execute_sql(cur, "SELECT data FROM %s__%s__docs WHERE docid = '%s';" % (table_name, name, value))
+                value = cur.fetchall()[0][0]
         data[name] = value
     sample_time = data['id__time']
     del data['id__time']
@@ -296,10 +292,12 @@ class SqliteColumn(object):
         memdam.common.event.FieldType.NAMESPACE: 'TEXT',
     }
 
-    def __init__(self, name, data_type, table_name):
+    def __init__(self, column_name, table_name):
+        self.column_name = column_name
+        name = memdam.common.event.Event.raw_name(column_name)
         assert re.compile(r"[a-z][a-z_]*").match(name.lower()), "Should only use a-z and '_' in namespaces"
         self.name = name.lower()
-        self.data_type = data_type
+        self.data_type = memdam.common.event.Event.field_type(column_name)
         self.table_name = table_name.lower()
 
     @property
@@ -346,20 +344,10 @@ class SqliteColumn(object):
         """
         return 'ASC'
 
-    @property
-    def column_name(self):
-        """
-        :returns: a name to use for the column within the database. Just name + __ + type
-        :rtype: string
-        """
-        data_type_name = memdam.common.event.FieldType.names[self.data_type]
-        return self.name + "__" + data_type_name.lower()
-
     @staticmethod
     def from_row(row, table_name):
         """
         Alternative constructor from a sqlite row.
         """
         column_name = row[1]
-        (name, data_type) = column_name.split("__")
-        return SqliteColumn(name, getattr(memdam.common.event.FieldType, data_type.upper()), table_name)
+        return SqliteColumn(column_name, table_name)
