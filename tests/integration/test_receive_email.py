@@ -1,9 +1,11 @@
 
+import time
 import shutil
 import os
 import asyncore
 import multiprocessing
 
+import memdam.common.timeutils
 import memdam.recorder.message
 import memdam.server.archive.sqlite
 import memdam.server.email_data_handler
@@ -20,6 +22,7 @@ def test_email_handling():
     #start a process to run the server
     process = multiprocessing.Process(target=run_server)
     process.start()
+    time.sleep(5.0)
     #send the email
     events = [
         memdam.common.event.Event(memdam.common.timeutils.now(), NAMESPACE, some__text="asdfsd", x__text="d"),

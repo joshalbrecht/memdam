@@ -6,7 +6,6 @@ import sqlite3
 import itertools
 
 import pytz
-from fn.iters import flatten
 
 import memdam
 import memdam.common.event
@@ -131,7 +130,10 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         conn = self._connect(table_name, 'w')
         cur = conn.cursor()
         existing_columns = self._query_existing_columns(cur, table_name)
-        key_names = set(flatten([event.keys for event in events]))
+        key_names = set()
+        for event in events:
+            for key in event.keys:
+                key_names.add(key)
         #certain key names are ignored because they are stored implicity in the location of
         #this database (user, namespace)
         for reserved_name in ("type__namespace", "user__id"):
