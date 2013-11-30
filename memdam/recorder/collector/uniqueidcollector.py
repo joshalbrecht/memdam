@@ -11,6 +11,8 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
     Collects events by watching sources that have a list of unique ids (which can be either strings
     or integers but probably NOT longs, since those will exceed the max length for json)
 
+    Subclasses MUST call launch() before the first call to collect!
+
     Runs on the same schedule as the regular collector (so that should probably be relatively
     infrequently for most services, to prevent being blocked for rate-limiting reasons)
 
@@ -28,33 +30,56 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
     :type _id_collector: function
     """
 
-    def __init__(self, id_collector, id_collector_kwargs, id_processor, id_processor_kwargs, config, state_store):
+    def __init__(self, config, state_store):
         memdam.recorder.collector.collector.Collector.__init__(self, config, state_store)
         self._id_queue = multiprocessing.Queue()
         self._event_queue = multiprocessing.Queue()
         self._control_strand = None
         self._finished_message_ids = set()
         self._worker_strands = []
+        self._id_collector = None
+        self._id_collector_kwargs = None
+        self._id_processor = None
+        self._id_processor_kwargs = None
+        self._shutting_down = False
+        #TODO: make these configurable
+        self._num_workers = 4
+        #note: the queue is not ACTUALLY limited in size, so that we can insert poison pills without
+        #blocking, and this way is easier. It will NEVER be larger than:
+        #self._max_event_queue_size + 2 * self._num_workers
+        self._max_event_queue_size = 100
+
+    def launch(self, id_collector, id_collector_kwargs, id_processor, id_processor_kwargs):
+        """
+        Subclasses MUST call this before the first call to collect()!
+
+        Starts the control and worker threads.
+        """
         self._id_collector = id_collector
         self._id_collector_kwargs = id_collector_kwargs
         self._id_processor = id_processor
         self._id_processor_kwargs = id_processor_kwargs
-        #TODO: make configurable
-        self._num_workers = 4
-        self._shutting_down = False
 
-    def start(self):
         self._control_strand = self._launch_id_collector_strand()
         for i in range(0, self._num_workers):
+            #TODO: parameterize whether these are processes or strands
             strand = memdam.common.parallel.create_strand(
                 "%s_worker_%s" % (str(self.__class__), i),
-                self._id_processor,
-                args=(self._id_queue, self._event_queue),
-                kwargs=self._id_processor_kwargs)
+                _collect_unique_event,
+                args=(
+                    self._max_event_queue_size,
+                    self._id_queue,
+                    self._event_queue,
+                    self._id_processor,
+                    self._id_processor_kwargs
+                    )
+                )
             strand.start()
             self._worker_strands.append(strand)
 
     def collect(self, limit):
+        assert self._id_collector != None, "Subclasses MUST call launch() before the first call to collect()! (%s failed this contract)" % (self)
+
         #if the strand finished, start it up again
         if not self._control_strand.is_alive():
             self._control_strand.join()
@@ -99,8 +124,11 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
         for worker in self._worker_strands:
             worker.join()
 
-        #TODO: after everything is done, deal with the queues
-        #TODO: hmmm...  how to implement feedback and pushback, so that we don't have huge buffers?
+        #after everything is done, deal with the queues
+        self._id_queue.close()
+        self._id_queue.join_thread()
+        self._event_queue.close()
+        self._event_queue.join_thread()
 
     #TODO: go be consistent about the usage and definition of strand
     def _launch_id_collector_strand(self):
@@ -118,5 +146,17 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
             args=(self._id_queue,),
             kwargs=self._id_collector_kwargs)
         strand.start()
-        #Value('i', initval)
         return strand
+
+def _collect_unique_event(max_event_queue_size, id_queue, event_queue, processor, processor_kwargs):
+    """
+    While the event queue is not full, collect events based on unique ids.
+    Will run in its own strand.
+    """
+    while event_queue.size() < max_event_queue_size:
+        unique_id = id_queue.get()
+        try:
+            event = processor(unique_id, **processor_kwargs)
+            event_queue.put(event)
+        except Exception, e:
+            report()

@@ -10,6 +10,7 @@ class StateStore(object):
     Tries pretty hard to make the set_state an atomic operation.
     """
 
+    #TODO: should not do raw file name manipulation. Should probably all exist in some nice little container that can be encrypted, etc
     def __init__(self, json_file):
         self._json_file = json_file
         self._temp_file = self._json_file + ".tmp"
