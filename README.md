@@ -3,6 +3,12 @@ memdam
 
 MEMory DA(e)Mon. A background process for archiving and serving all data about yourself.
 
+#TODO: needs massive reorganization of stuff into a few different readmes
+
+#general rule: prefer duplicate insertion of the same event where possible, since the insertion itself is idempotent and it should be exactly the same
+#general rule: collectors often generate a wide variety of namespaces
+#and should mostly be grouped by the actual collect (individual data can be turned on and off in the configuration)
+
 all events have a namespace, according to this standard:
     datatype.device or datatype.service
     device data types are encourage to include a device_text_fts field (same for services)

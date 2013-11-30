@@ -7,6 +7,7 @@ from fn.monad import Option
 
 import memdam.recorder.message
 
+#TODO: actually make the event queue persistent (possibly by using sqlite) (postpone this for now)
 class EventQueue(object):
     """
     Receives events from Collectors.

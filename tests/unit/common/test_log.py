@@ -33,10 +33,12 @@ def _check_logging(log_name):
     memdam.common.parallel.setup_log(log_name, level=logging.DEBUG, handlers=handlers)
     processes = []
     for i in range(5, 7):
-        process = memdam.common.parallel.create_process(
+        process = memdam.common.parallel.create_strand(
             name=str(i),
             target=_print_some_statements,
-            args=(i,))
+            args=(i,),
+            use_process=True
+            )
         process.start()
         processes += [process]
     _print_some_statements(8)

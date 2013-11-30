@@ -25,6 +25,7 @@ def _consume_messages(queue, to_addresses, smtp_address):
         except Exception, e:
             memdam.common.error.report(e)
 
+#TODO: actually make the message queue persistent (possibly by using sqlite) (postpone this for now)
 class MailQueue(object):
     """
     Dump messages here and they will eventually get delivered.
@@ -34,9 +35,9 @@ class MailQueue(object):
     def __init__(self, num_workers, to_addresses, smtp_address):
         self._messages = multiprocessing.Queue()
         self._pool = [
-                memdam.common.parallel.create_process(
+                memdam.common.parallel.create_strand(
                     name="MailMan-" + str(x), target=_consume_messages,
-                    args=(self._messages, to_addresses, smtp_address)) \
+                    args=(self._messages, to_addresses, smtp_address), use_process=True) \
             for x in range(0, num_workers)]
         for process in self._pool:
             process.start()
