@@ -97,48 +97,30 @@ class ParentLogHandler(ChildLogHandler):
         """
         while True:
             try:
-                try:
-                    record = self.queue.get()
-                except IOError, e:
-                    if str(e) == "handle out of range in select()":
-                        return
-                if isinstance(record, memdam.common.poisonpill.PoisonPill):
-                    return
+                records = memdam.common.parallel.read_next_from_queue(self.queue)
+                if len(records) <= 0:
+                    break
+                assert len(records) == 1
                 for handler in self._handlers:
-                    handler.emit(record)
+                    handler.emit(records[0])
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except EOFError:
-                break
             except:
                 traceback.print_exc(file=sys.stderr)
 
-    #TODO: deduplicate code from receive and be safer about error conditions
     def flush(self):
         """
         Print all messages currently in the queue. Does not block.
         """
-        while True:
-            try:
-                try:
-                    try:
-                        record = self.queue.get_nowait()
-                    except IOError, e:
-                        if str(e) == "handle out of range in select()":
-                            return
-                    if isinstance(record, memdam.common.poisonpill.PoisonPill):
-                        self.queue.put(record)
-                        return
-                except Queue.Empty:
-                    return
+        try:
+            records = memdam.common.parallel.read_all_from_queue(self.queue)
+            for record in records:
                 for handler in self._handlers:
                     handler.emit(record)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except EOFError:
-                break
-            except:
-                traceback.print_exc(file=sys.stderr)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            traceback.print_exc(file=sys.stderr)
 
     def close(self):
         for handler in self._handlers:
