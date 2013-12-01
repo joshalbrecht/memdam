@@ -32,6 +32,8 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
 
     def __init__(self, config, state_store):
         memdam.recorder.collector.collector.Collector.__init__(self, config, state_store)
+        self._ids_already_generated = set(self._state_store.get_state()['finished'])
+        self._new_id_queue = multiprocessing.Queue()
         self._id_queue = multiprocessing.Queue()
         self._event_queue = multiprocessing.Queue()
         self._control_strand = None
@@ -118,6 +120,7 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
         self._control_strand.join()
 
         #shutdown workers with memdam.common.poisonpill.PoisonPill's
+        # pylint: disable=W0612
         for i in range(0, self._num_workers):
             message = memdam.common.poisonpill.PoisonPill()
             self._id_queue.put_nowait(message)
@@ -138,15 +141,33 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
         :returns: the strand, already started
         :rtype: strand
         """
+        #pull all of the ids that were evaluated last time, and make sure we don't add them again
+        new_ids = memdam.common.parallel.read_all_from_queue(self._new_id_queue)
+        for new_id in new_ids:
+            self._ids_already_generated.add(new_id)
+
         #TODO: parameterize whether these are processes or strands
         #start a controller strand with a reference to the queue into which ids should be inserted
         strand = memdam.common.parallel.create_strand(
             str(self.__class__) + "_main_strand",
-            self._id_collector,
-            args=(self._id_queue,),
-            kwargs=self._id_collector_kwargs)
+            _collect_unique_ids,
+            args=(self._ids_already_generated, self._new_id_queue, self._id_queue, self._id_collector, self._id_collector_kwargs),
+        )
         strand.start()
         return strand
+
+def _collect_unique_ids(ids_already_generated, new_id_queue, id_queue, collector, collector_kwargs):
+    """
+    Call the collector with the set of ids that were already generated.
+    The collector will generate a list of ids that should be added to the queue.
+    These should be merged with the previous set of ids and passed in on the next call, so we use
+    another queue (new_id_queue) to remember which things were new for the next call
+    """
+    # pylint: disable=W0142
+    new_ids = collector(ids_already_generated, **collector_kwargs)
+    for new_id in new_ids:
+        new_id_queue.put_nowait(new_id)
+        id_queue.put_nowait(new_id)
 
 def _collect_unique_event(max_event_queue_size, id_queue, event_queue, processor, processor_kwargs):
     """
@@ -156,6 +177,7 @@ def _collect_unique_event(max_event_queue_size, id_queue, event_queue, processor
     while event_queue.size() < max_event_queue_size:
         unique_id = id_queue.get()
         try:
+            # pylint: disable=W0142
             event = processor(unique_id, **processor_kwargs)
             event_queue.put(event)
         except Exception, e:

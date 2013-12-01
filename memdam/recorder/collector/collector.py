@@ -13,6 +13,7 @@ class Collector(object):
     :type _state_store: memdam.recorder.collector.state.CollectorState
     """
 
+    #TODO: when started, destroy all files in the temp workspace
     def __init__(self, config, state_store):
         """
         Config is loaded initially and defines any custom configuration for this collector.

@@ -1,46 +1,10 @@
 
+import imaplib
+
 import memdam.recorder.collector.uniqueidcollector
 
-def _collector(queue, finished=None, username=None, password=None):
-    """
-    Called periodically to collect all new unique ids.
-    """
-    #TODO: actually, this kinda sucks, since we'll be adding these ids to a list that potentially already has them
-    #eg, mismatch between initial "state" (which is actually only even loaded once) and the remote state
-    #even worse when we consider things where ids shift (imap with multiple users? files?)
-    #maybe need a unique queue...
-    #problems:
-    #1. on each call, will insert all differences between ORIGINAL state and current remote state
-    #2. on each call, will insert all differences, with no consideration of those ids that were already queued
-    #3. some services have unstable ids (example, imap where emails can be deleted and then the ids shift?)
-    #
-    #how about this:
-    #we pass in a list/set of all of the things either seen so far, or in the queue already
-    #this function just lets us know about anything that we're missing and returns that set
-    #the caller merges the two, and provides the merged set next time
-    #hmm, except that if there are unstable sets, the set of things we've seen so far will grow in an unbounded fashion
-    #and since that is persisted to json, then we're screwed again :(
-    #also, the processor function below needs to gracefully handle failures
-    #eg, in this case, by backing off
-    #but more generally should expect failure, especially if ids shift or may no longer be valid
-    #in the case of imap specifically, ids are unique PER FOLDER (weird)
-    #in the case of gmail specifically, there is a unique message id that can be used sensibly (unsure if chats are included)
-    #
-    #I guess file system events should NOT be a UniqueIdCollector--the collection can grow forever, and we don't really care
-    #I guess really it needs two different ones--historical file collector (which IS a uniqueid collector)
-    #  bleh, except that we still get the growing ness with temp files
-    #ahh, nah, historical is a date ordered one (just collects things in order of date and stores the most recent date)
-    #
-    #email could ALMOST be this way (as ids just increase, sort of an OrderedIdCollector) except that gmail doesn't guarantee those semantics necessarily...
-    #...or maybe it does? that would certainly be simpler...
-    #
-    #ok, so meta note--implementors should prefer collectors in the order:
-    #sampling
-    #ordered id
-    #unique id
-    #
-    #and full filesystem backup collector can work with ext4 and snapshots (or that other one)
-    #ordered ids then are snapshotid-alphabetical_path
+_MAIL_CODE = 'M'
+_CHAT_CODE = 'C'
 
 class GmailCollector(memdam.recorder.collector.uniqueidcollector.UniqueIdCollector):
     """
@@ -59,14 +23,83 @@ class GmailCollector(memdam.recorder.collector.uniqueidcollector.UniqueIdCollect
         )
 
     def start(self):
+        kwargs = {'config': self._config,}
         memdam.recorder.collector.uniqueidcollector.UniqueIdCollector.launch(
             self,
             _collector,
-            {
-                'finished': set(self._state_store.get_state()['finished']),
-                'username': username,
-                'password': password,
-            },
-            processor,
-            processor_kwargs
+            kwargs,
+            _processor,
+            kwargs
         )
+
+class GmailConnection(object):
+    """
+    An IMAP connection to Gmail.
+    """
+
+    def __init__(self, config):
+        self._config = config
+        self._imap = imaplib.IMAP4_SSL('imap.gmail.com')
+        username = self._config['username']
+        password = self._config['password']
+        self._imap.login(username, password)
+
+    def generate_all_ids(self):
+        """
+        :returns: a set of all ids for all emails and chats from google
+        :rtype: set(string)
+        """
+        mail_ids = self._generate_all_ids_from_folder('[Gmail]/All Mail', _MAIL_CODE)
+        chat_ids = self._generate_all_ids_from_folder('[Gmail]/Chats', _CHAT_CODE)
+        return mail_ids + chat_ids
+
+    def _generate_all_ids_from_folder(self, folder, code):
+        """
+        Generate a list of ids for a gmail IMAP folder
+        """
+        #select the folder with all mail (read-only)
+        self._imap.select(folder, True)
+        #search for everything
+        result = self._imap.search(None, 'ALL')
+        assert result[0] == 'OK'
+        id_list = result[1][0]
+        all_ids = [code + x for x in id_list.split(" ")]
+        #return the list of all ids
+        return all_ids
+
+    def create_event(self, mail_id):
+        """
+        :returns: an event representing this email
+        :rtype: memdam.common.event.Event
+        """
+
+        #chats (via imap) really have two formats--a text/html one and a  multipart/alternative -> text/html one
+        #the first one seems to be single messages, and happen later
+        #the second one has  abunch of back and forth messages smushed together and should probably be separated
+
+        #select the folder (read-only)
+        #download the email
+        #if this is a chat, check that if we care about chats
+        #if this is an email, check that we care about emails
+        #get all associated labels
+        #turn any attachments into files in our temp workspace
+        #parse the rest of the fields out of the message or chat
+        #return the event
+
+def _collector(finished, config=None):
+    """
+    Called periodically to collect all new unique ids.
+    """
+    connection = GmailConnection(config)
+    all_ids = connection.generate_all_ids()
+    filtered_ids = [new_id for new_id in all_ids if new_id not in finished]
+    return filtered_ids
+
+def _processor(mail_id, config=None):
+    """
+    :returns: an event representing this email
+    :rtype: memdam.common.event.Event
+    :throws: an Exception if anything went wrong related to this specific email (email deleted, etc)
+    """
+    connection = GmailConnection(config)
+    return connection.create_event(mail_id)
