@@ -2,6 +2,7 @@
 import types
 import multiprocessing
 
+import memdam.common.error
 import memdam.common.poisonpill
 import memdam.common.parallel
 import memdam.recorder.collector.collector
@@ -178,7 +179,9 @@ def _collect_unique_event(max_event_queue_size, id_queue, event_queue, processor
         unique_id = id_queue.get()
         try:
             # pylint: disable=W0142
-            event = processor(unique_id, **processor_kwargs)
-            event_queue.put(event)
+            events = processor(unique_id, **processor_kwargs)
+            for event in events:
+                event_queue.put(event)
+        # pylint: disable=W0703
         except Exception, e:
-            report()
+            memdam.common.error.report(e)
