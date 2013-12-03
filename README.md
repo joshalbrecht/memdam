@@ -1,7 +1,101 @@
-memdam
-======
+# MEMDAM (MEMory DAeMon)
 
-MEMory DA(e)Mon. A background process for archiving and serving all data about yourself.
+## Goal
+
+**Effortlessly** record **all** of your **personal** data in a **simple**, **secure** and **accessible** way to answer questions you care about.
+
+- **Effortless**: No manual data entry required.
+  This project is mostly concerned with data that can be collected automatically from other devices and services.
+- **All**: It should be possible to use this project to collect any data you care about.
+- **Personal**: This project is only concerned with Little Data--the kind of data that is related to a single person.
+  If you want to record the price of every stock, or everyone's tweets, use something else.
+- **Simple**: Nobody wants life to be complicated.
+  Everything that happens to you in real life is an event, so all data is simply a collection of events.
+- **Secure**: Only you have access to your data.
+  Nothing is ever shared by default.
+- **Accessible**: You have complete access to your data, and easy ways to answer the questions you care about.
+
+## Status
+
+If you are *not* a programmer, [email me](mailto:joshalbrecht@gmail.com) and let me know what you would like to use the project for.
+I will notify you when it is ready.
+
+If you *are* a programmer, see below for a description of the system, and [let me know](mailto:joshalbrecht@gmail.com) what you think of it.
+
+The description below matches what is planned, not what already exists.
+Now there is only a simple client and server.
+Integrations with gmail, google hangouts, and google chat are currently in progress.
+The next step is to have a simple demo for a single type of data (communications, eg, chats, emails, calls, texts, etc)
+
+## Overview
+
+Life is a series of events, so that is how we model it.
+
+The only required information to create an [Event](https://github.com/joshalbrecht/memdam/) is a type (a [Namespace](https://github.com/joshalbrecht/memdam/)) and a time--all other fields are optional.
+[Namespaces](https://github.com/joshalbrecht/memdam/) define the set of possible other fields that might be present on an event of that type.
+See [the full schema for an Event](https://github.com/joshalbrecht/memdam/) for a description of how other fields are defined.
+
+This system is simply responsible for two things:
+
+1. *Recording [Events](https://github.com/joshalbrecht/memdam/).* There are three general ways that events can enter the system:
+from a [historical import](https://github.com/joshalbrecht/memdam/) (ex: location history from Google Takeout),
+from [synchronization with another service](https://github.com/joshalbrecht/memdam/) or device (ex: continually synching with Foursquare),
+or from running a [special program](https://github.com/joshalbrecht/memdam/) on one or more devices that generates new events (ex: a special app that runs on your phone and records GPS data.)
+
+2. *Finding and displaying [Events](https://github.com/joshalbrecht/memdam/)* to answer questions.
+Through some combination of a REST API and a nice web interface, the goal is to make it possible to answer most questions about your data very easily.
+
+There are two fundamentally different types of [Events](https://github.com/joshalbrecht/memdam/):
+
+1. Discrete. These events happen at a particular time (like an email, text message, heart beats, adding a new friend on facebook, taking a picture, etc). Most of these types of events do not have numeric values and are better for displaying as text than graphing.
+2. Continuous. These events are happening constantly, but you only sample them at a particular time (like location, body weight, heart rate, active window title, etc). Many of these types of events have numeric values and are great for graphing.
+
+## Architecture
+
+The system is divided into the following components:
+
+### Archive
+
+Responsible for storing all [Events](https://github.com/joshalbrecht/memdam/) in a secure, durable manner, and serving requests for those [Events](https://github.com/joshalbrecht/memdam/).
+
+Because we take security so seriously,
+and the only way to be sure that something is secure is to run it on hardware that you physically control,
+the [Archive](https://github.com/joshalbrecht/memdam/) is designed to be easily installable and runnable from any environment that contains enough storage for your events.
+
+This means that your archive either needs to be running constantly and be universally accessible,
+or there needs to be a place to buffer events from [Collectors](https://github.com/joshalbrecht/memdam/) while the [Archive](https://github.com/joshalbrecht/memdam/) is offline.
+For now we simply assume that the [Archive](https://github.com/joshalbrecht/memdam/) is always available.
+
+The current implementation uses [python](https://github.com/joshalbrecht/memdam/) and [sqlite](https://github.com/joshalbrecht/memdam/) for storage.
+Each [Series](https://github.com/joshalbrecht/memdam/) (eg, all [Events](https://github.com/joshalbrecht/memdam/) with the same [Namespace](https://github.com/joshalbrecht/memdam/)) is stored in its own database file.
+All databases are stored in the same folder (so that data can be easily encrypted, backed up, etc.)
+If this seems weird, please read the [data storage architecture justification](https://github.com/joshalbrecht/memdam/), and after that, send me any questions or concerns that remain.
+
+### Collectors
+
+Responsible for writing [Events](https://github.com/joshalbrecht/memdam/) to the [Archive](https://github.com/joshalbrecht/memdam/).
+
+[Collectors](https://github.com/joshalbrecht/memdam/) are *write-only* programs that generate [Events] for a particular set of [Namespaces](https://github.com/joshalbrecht/memdam/) from some other device or service.
+Generally, [Collectors](https://github.com/joshalbrecht/memdam/) should be grouped so that data that is requested/recorded together is within the same [Collector](https://github.com/joshalbrecht/memdam/).
+There can be multiple instances of the same collector if you want different [Namespaces](https://github.com/joshalbrecht/memdam/) to be collected at different intervals (ex: if downloading from Google Takeout, you may wish to synchronize all of your youtube videos once per month because it is a lot of data, but synchronize your chats every day because it isn't much data)
+
+There are three main types of [Collectors](https://github.com/joshalbrecht/memdam/):
+
+1. *Historical*. These run once for a set of data, and then they are done.
+2. *Samplers*. These run at a fixed interval, and query the current values of some external device or service. This current value is recorded. Note that data for one of these [Collectors] is only recorded while the [Collector] is running (however, they are much simpler to write). These are great for things like location, heart rate, mood, current window title, etc.
+3. *Synchronizers*. These run at a fixed interval, and query the external device or service for its full state, then record any differences from the last run. These are more complicated to write because they must maintain some state about what [Events] have already been recorded (typically a date of last synchronization, or a set of unique ids), but they can be very useful. These are great for things like email, facebook messages, flickr, other web services, etc.
+
+### Displays
+
+## Event Data Model
+
+## Namespaces
+
+
+
+
+
+
 
 #TODO: needs massive reorganization of stuff into a few different readmes
 
