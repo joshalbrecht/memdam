@@ -37,12 +37,12 @@ See [the full schema for an Event](https://github.com/joshalbrecht/memdam/) for 
 
 This system is simply responsible for two things:
 
-1. *Recording [Events](https://github.com/joshalbrecht/memdam/).* There are three general ways that events can enter the system:
+1. **Recording [Events](https://github.com/joshalbrecht/memdam/).** There are three general ways that events can enter the system:
 from a [historical import](https://github.com/joshalbrecht/memdam/) (ex: location history from Google Takeout),
 from [synchronization with another service](https://github.com/joshalbrecht/memdam/) or device (ex: continually synching with Foursquare),
 or from running a [special program](https://github.com/joshalbrecht/memdam/) on one or more devices that generates new events (ex: a special app that runs on your phone and records GPS data.)
 
-2. *Finding and displaying [Events](https://github.com/joshalbrecht/memdam/)* to answer questions.
+2. **Finding and displaying [Events](https://github.com/joshalbrecht/memdam/)** to answer questions.
 Through some combination of a REST API and a nice web interface, the goal is to make it possible to answer most questions about your data very easily.
 
 There are two fundamentally different types of [Events](https://github.com/joshalbrecht/memdam/):
@@ -66,7 +66,10 @@ This means that your archive either needs to be running constantly and be univer
 or there needs to be a place to buffer events from [Collectors](https://github.com/joshalbrecht/memdam/) while the [Archive](https://github.com/joshalbrecht/memdam/) is offline.
 For now we simply assume that the [Archive](https://github.com/joshalbrecht/memdam/) is always available.
 
-The current implementation uses [python](https://github.com/joshalbrecht/memdam/) and [sqlite](https://github.com/joshalbrecht/memdam/) for storage.
+Another possible future expansion is support for "virtual" sources.
+Ex: instead of storing all events from Dropbox, simply acts as an interface that turns [Archive](https://github.com/joshalbrecht/memdam/) queries into queries to the Dropbox API, and then appropriately transforms the responses.
+
+The current [Archive](https://github.com/joshalbrecht/memdam/) implementation uses [python](https://github.com/joshalbrecht/memdam/) and [sqlite](https://github.com/joshalbrecht/memdam/) for storage.
 Each [Series](https://github.com/joshalbrecht/memdam/) (eg, all [Events](https://github.com/joshalbrecht/memdam/) with the same [Namespace](https://github.com/joshalbrecht/memdam/)) is stored in its own database file.
 All databases are stored in the same folder (so that data can be easily encrypted, backed up, etc.)
 If this seems weird, please read the [data storage architecture justification](https://github.com/joshalbrecht/memdam/), and after that, send me any questions or concerns that remain.
@@ -75,21 +78,52 @@ If this seems weird, please read the [data storage architecture justification](h
 
 Responsible for writing [Events](https://github.com/joshalbrecht/memdam/) to the [Archive](https://github.com/joshalbrecht/memdam/).
 
-[Collectors](https://github.com/joshalbrecht/memdam/) are *write-only* programs that generate [Events] for a particular set of [Namespaces](https://github.com/joshalbrecht/memdam/) from some other device or service.
+[Collectors](https://github.com/joshalbrecht/memdam/) are *write-only* programs that generate [Events](https://github.com/joshalbrecht/memdam/) for a particular set of [Namespaces](https://github.com/joshalbrecht/memdam/) from some other device or service.
 Generally, [Collectors](https://github.com/joshalbrecht/memdam/) should be grouped so that data that is requested/recorded together is within the same [Collector](https://github.com/joshalbrecht/memdam/).
 There can be multiple instances of the same collector if you want different [Namespaces](https://github.com/joshalbrecht/memdam/) to be collected at different intervals (ex: if downloading from Google Takeout, you may wish to synchronize all of your youtube videos once per month because it is a lot of data, but synchronize your chats every day because it isn't much data)
 
-There are three main types of [Collectors](https://github.com/joshalbrecht/memdam/):
+There are four main types of [Collectors](https://github.com/joshalbrecht/memdam/):
 
-1. *Historical*. These run once for a set of data, and then they are done.
-2. *Samplers*. These run at a fixed interval, and query the current values of some external device or service. This current value is recorded. Note that data for one of these [Collectors] is only recorded while the [Collector] is running (however, they are much simpler to write). These are great for things like location, heart rate, mood, current window title, etc.
-3. *Synchronizers*. These run at a fixed interval, and query the external device or service for its full state, then record any differences from the last run. These are more complicated to write because they must maintain some state about what [Events] have already been recorded (typically a date of last synchronization, or a set of unique ids), but they can be very useful. These are great for things like email, facebook messages, flickr, other web services, etc.
+1. **Historical**. These run once for a set of data, and then they are done.
+2. **Samplers**. These run at a fixed interval, and query the current values of some external device or service. This current value is recorded. Note that data for one of these [Collectors](https://github.com/joshalbrecht/memdam/) is only recorded while the [Collector](https://github.com/joshalbrecht/memdam/) is running (however, they are much simpler to write). These are great for things like location, heart rate, mood, current window title, etc.
+3. **Synchronizers**. These run at a fixed interval, and query the external device or service for its full state, then record any differences from the last run. These are more complicated to write because they must maintain some state about what [Events](https://github.com/joshalbrecht/memdam/) have already been recorded (typically a date of last synchronization, or a set of unique ids), but they can be very useful. These are great for things like email, facebook messages, flickr, other web services, etc.
 
 ### Displays
+
+Responsible for displaying [Events](https://github.com/joshalbrecht/memdam/) in a way that makes it easy to answer particular questions.
+
+This is currently the part of the system with the least design so far.
+
+Tenatively, I think there are three main displays required:
+
+1. **Timeline Display**. All Events should be able to be displayed in columns (or rows), sorted by date, and for convenient viewing.
+This is at the very least required for debugging, and also would probably just look cool and be fun to play with.
+2. **Search Display**. All Events should be searchable. Whether this search functionality is built on top of the Timeline View,
+or whether the results come back in their own Display is still undecided.
+3. **Widget Display**. This encompasses all other displays.
+There will probably be generic widgets (ex: display the last X days of data from Y as a Z graph),
+as well as more specialized widgets (ex: calculate a single number for today's "productivity score" based on a variety of data sources)
+
+My current thought is that we will have a variety of displays, depending on which particular information you are interested in.
+Examples include charts, lists of notifications, and other simple diplays for a dashboard.
+
+There is also (I think) a need for a unified method of inspecting all data.
+A sort of "time
 
 ## Event Data Model
 
 ## Namespaces
+
+## Future:
+
+There are plenty of interesting things to add in the future, including:
+
+- Filters: transform or limit the information from a given collector.
+Ex: if taking snapshots from a webcam, ignore any that have not changed very much.
+Ex: if taking periodic screenshots, run some OCR on the resulting image to extract the visible text and store that as well.
+
+- Triggers: check for a certain condition (ex: more than $X spent at restaurants in the past 30 days according to mint.com)
+and perform a certain action (ex: send an email telling you to stop eating out so much)
 
 
 
