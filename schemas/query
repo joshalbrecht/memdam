@@ -1,0 +1,93 @@
+{
+    "id": "http://github.com/joshalbrecht/memdam/master/schemas/query#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "description": "Schema for a queries to the memdam Archive, which define the Events that should be returned. Recursively includes other queries to form more complex",
+    "type": "object",
+    "properties": {
+	"constraint": {
+	    "description": "A set of constraints that are ANDed and ORed together to determine which events are returned.",
+	    "type": "object",
+            "$ref": "#/definitions/constraint"
+	},
+	"include": {
+	    "description": "A list of attribute names to return. Nothing except those named here will be returned. Simply for efficiency."
+	},
+	"exclude": {
+	    "description": "A list of attribute names to return. All attributes except those listed here will be returned. Simply for efficiency."
+	},
+	"limit": {
+	    "description": "Return no more than this many events."
+	},
+	"offset": {
+	    "description": "To be used in combination with 'limit' for paging results--skips this many resulting events. Since events are always returned in ascending order by time, this is stable as long as no old events are inserted."
+	}
+    },
+    "definitions": {
+        "constraint": {
+	    "oneOf": [
+		{ "$ref": "#/definitions/compoundConstraint" },
+		{ "$ref": "#/definitions/singleConstraint" }
+	    ]
+	},
+	"compoundConstraint": {
+            "properties": {
+                "type": {
+		    "description": "",
+		    "enum": [ "and", "or", "not" ]
+		},
+                "terms": {
+		    "description": "A nested list of constraints",
+                    "type": "array",
+		    "minItems": 1,
+		    "items": {
+			"type": "object",
+			"$ref": "#/definitions/constraint"
+		    },
+		    "uniqueItems": true
+                }
+	    },
+	    "required": ["type", "terms"],
+	    "additionalProperties": false
+	},
+	"singleConstraint": {
+	    "properties": {
+		"lhs": {
+		    "$ref": "#/definitions/constraintTerm"
+		},
+		"operator": {
+		    "enum": ["<", "<=", "==", "!=", ">=", ">", "in"]
+		},
+		"rhs": {
+		    "$ref": "#/definitions/constraintTerm"
+		},
+            },
+	    "required": ["type", "terms"],
+            "additionalProperties": false
+        },
+	"constraintTerm": {
+	    "oneOf": [
+		{ "$ref": "#/definitions/constraintTermValue" },
+		{ "$ref": "#/definitions/constraintTermAttribute" }
+	    ]
+	},
+	"constraintTermValue": {
+	    "oneOf": [
+		{ "type": "string" },
+		{ "type": "boolean" },
+		{ "type": "number" },
+		{ "type": "null" },
+	    ]
+	},
+	"constraintTermAttribute": {
+	    "type": "object",
+	    "properties": {
+		"name": {
+		    "type": "string",
+		    "description": "the name of the event attribute to match on"
+		},
+		"required": ["name"],
+		"additionalProperties": false
+	    }
+	}
+    }
+}
