@@ -13,6 +13,15 @@ class ArchiveInterface(object):
         :raises: Exception if the events were not saved. Should simply retry later.
         """
 
+    def get(self, event_id):
+        """
+        :param event_id: the UUID of the event to retrieve
+        :type  event_id: UUID
+        :returns: the event with that id
+        :rtype:  memdam.common.event.Event
+        :raises: Exception if there is no event with that id.
+        """
+
     def find(self, query=None):
         """
         :returns: all events that match the given query.

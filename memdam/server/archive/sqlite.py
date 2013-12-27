@@ -32,6 +32,9 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
 
     Note: pass in a folder called :memory: to keep everything in memory for testing
 
+    blob_url_base should be something like 'https://somewhere.com/some/path/' which is the common
+    prefix for all blobs
+
     When inserting new events, automatically creates new columns if necessary.
     All columns are given appropriate indices (usually ASC, except in the case of TEXT, which is
     given an FTS virtual table, and the column in the main table because an INTEGER that refers
@@ -46,8 +49,9 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
     Indices are named "name__type__secondary__indextype"
     """
 
-    def __init__(self, folder):
+    def __init__(self, folder, blob_url_base):
         self.folder = folder
+        self._blob_url_base = blob_url_base
         self.memory_connection = None
 
     def save(self, events):
@@ -56,6 +60,18 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         for namespace, grouped_events in itertools.groupby(sorted_events, lambda x: x.namespace):
             table_name = namespace.replace(".", "_")
             self._save_events(list(grouped_events), table_name)
+
+    def get(self, event_id):
+        for table_name in self._all_table_names():
+            conn = self._connect(table_name, 'r')
+            namespace = table_name.replace("_", ".")
+            cur = conn.cursor()
+            names = [x[0] for x in cur.description]
+            sql = "SELECT * FROM %s;" % (table_name)
+            execute_sql(cur, sql)
+            for row in cur.fetchall():
+                return _create_event_from_row(row, names, namespace, conn)
+        raise Exception("event with id %s not found" % (event_id))
 
     def find(self, query=None):
         #TODO: filter down earlier based on namespace in query
