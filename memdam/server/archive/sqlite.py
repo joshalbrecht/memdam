@@ -1,4 +1,5 @@
 
+import uuid
 import datetime
 import re
 import os
@@ -160,6 +161,9 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
             allrows = cur.fetchall()
         memdam.log.trace("Table %s info rows: %s" % (table_name, allrows,))
         for row in allrows:
+            #ignore our unique id row
+            if row[1] == '_id':
+                continue
             col = SqliteColumn.from_row(row, table_name)
             columns[col.name] = col
         return columns
@@ -169,8 +173,9 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         Create a table with the default column (sample_time)
         """
         memdam.log.trace("Creating default column for %s" % (table_name,))
-        execute_sql(cur, "CREATE TABLE %s(id__time INTEGER PRIMARY KEY);" % (table_name,))
-        execute_sql(cur, "CREATE INDEX %s__id__time__asc ON %s (id__time ASC);" % (table_name, table_name))
+        execute_sql(cur, "CREATE TABLE %s(_id INTEGER PRIMARY KEY, time__time INTEGER, id__id STRING);" % (table_name,))
+        execute_sql(cur, "CREATE INDEX %s__time__time__asc ON %s (time__time ASC);" % (table_name, table_name))
+        execute_sql(cur, "CREATE INDEX %s__id__id__asc ON %s (id__id ASC);" % (table_name, table_name))
 
     def _generate_columns(self, cur, key_names, table_name):
         """
@@ -203,26 +208,38 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         Insert all events at once.
         Assumes that the schema is correct.
         """
+
+        #required because of stupid text fields.
+        #we need to explicitly set the ids of everything inserted, or iteratively insert and check for lastrowid (which is slow and pathological and will end up doing this effectively anyway I think)
+        cur.execute("BEGIN EXCLUSIVE")
+
+        #figure out what the next id to insert should be
+        cur.execute("SELECT _id FROM %s ORDER BY _id DESC LIMIT 1" % (table_name))
+        next_row_id = 1
+        results = cur.fetchall()
+        if len(results) > 0:
+            next_row_id = results[0][0] + 1
+
         #need to insert text documents into separate docs tables
         for key in key_names:
             if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
                 sql = "INSERT INTO %s__%s__docs (docid,data) VALUES (?,?);" % (table_name, key)
-                values = [(convert_time_to_long(event.time), getattr(event, key, None)) for event in events]
+                values = [(next_row_id + i, getattr(events[i], key, None)) for i in range(0, len(events))]
                 memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
                 cur.executemany(sql, values)
 
         #finally, insert the actual events into the main table
         column_names = list(key_names)
         column_name_string = ", ".join(column_names)
-        value_tuple_string = "(" + ", ".join(['?'] * len(column_names)) + ")"
-        sql = "INSERT INTO %s (%s) VALUES %s;" % (table_name, column_name_string, value_tuple_string)
-        values = [make_value_tuple(event, key_names) for event in events]
+        value_tuple_string = "(" + ", ".join(['?'] * (len(column_names)+1)) + ")"
+        sql = "INSERT INTO %s (_id, %s) VALUES %s;" % (table_name, column_name_string, value_tuple_string)
+        values = [make_value_tuple(events[i], key_names, next_row_id + i) for i in range(0, len(events))]
         memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
         cur.executemany(sql, values)
 
-def make_value_tuple(event, key_names):
+def make_value_tuple(event, key_names, event_id):
     """Turns an event into a sql value tuple"""
-    values = []
+    values = [event_id]
     for key in key_names:
         value = getattr(event, key, None)
         if value != None:
@@ -231,7 +248,10 @@ def make_value_tuple(event, key_names):
                 value = convert_time_to_long(value)
             #convert text tuple entries into references to the actual text data
             elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
-                value = convert_time_to_long(event.time)
+                value = event_id
+            #convert UUIDs to hex representation for now
+            elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.ID:
+                value = value.hex
         values.append(value)
     return values
 
@@ -258,9 +278,11 @@ def _create_event_from_row(row, names, namespace, conn):
                 cur = conn.cursor()
                 execute_sql(cur, "SELECT data FROM %s__%s__docs WHERE docid = '%s';" % (table_name, name, value))
                 value = cur.fetchall()[0][0]
+            elif field_type == memdam.common.event.FieldType.ID:
+                value = uuid.UUID(value)
         data[name] = value
-    sample_time = data['id__time']
-    del data['id__time']
+    sample_time = data['time__time']
+    del data['time__time']
     return memdam.common.event.Event(sample_time, namespace, **data)
 
 EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)

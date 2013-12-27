@@ -1,6 +1,7 @@
 
 import types
 import datetime
+import uuid
 
 import dateutil.parser
 from fn.monad import Option
@@ -47,11 +48,14 @@ class Event(object):
     def __init__(self, sample_time, namespace, **kwargs):
         #TODO: events should be immutable and hashable
         #TODO: validate all keys (allowable characters, correct type, no overlap with top level, etc)
-        self.id__time = None
+        self.time__time = None
+        if 'id__id' not in kwargs:
+            kwargs['id__id'] = uuid.uuid4()
+        self.id__id = kwargs['id__id']
         self.type__namespace = None
-        assert 'id__time' not in kwargs
+        assert 'time__time' not in kwargs
         assert 'type__namespace' not in kwargs
-        kwargs['id__time'] = sample_time
+        kwargs['time__time'] = sample_time
         kwargs['type__namespace'] = namespace
         self.keys = set()
         for key, value in kwargs.items():
@@ -90,6 +94,8 @@ class Event(object):
             value = getattr(self, key)
             if isinstance(value, datetime.datetime):
                 value = value.isoformat()
+            elif isinstance(value, uuid.UUID):
+                value = value.hex
             new_dict[key] = value
         return new_dict
 
@@ -102,11 +108,11 @@ class Event(object):
     @property
     def time(self):
         """
-        Just a shortcut for id__time
+        Just a shortcut for time__time
         :returns: the time that this Event occurred
         :rtype: datetime.datetime
         """
-        return self.id__time
+        return self.time__time
 
     @property
     def namespace(self):
@@ -164,8 +170,10 @@ class Event(object):
         for key in keys:
             if Event.field_type(key) == FieldType.TIME:
                 data[key] = dateutil.parser.parse(data[key])
-        sample_time = data['id__time']
-        del data['id__time']
+            elif Event.field_type(key) == FieldType.ID:
+                data[key] = uuid.UUID(data[key])
+        sample_time = data['time__time']
+        del data['time__time']
         namespace = data['type__namespace']
         del data['type__namespace']
         return Event(sample_time, namespace, **data)

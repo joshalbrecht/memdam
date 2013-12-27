@@ -8,8 +8,6 @@ class ArchiveInterface(object):
         """
         Stores all events in the archive.
         Must be idempotent.
-        Remember that no two events can have the same time--if you insert two with the same time,
-        the later will overwrite the former.
         :param events: a list of events to save
         :type  events: memdam.common.event.Event
         :raises: Exception if the events were not saved. Should simply retry later.

@@ -3,11 +3,15 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "description": "Schema for a personal event. Events should be considered immutable.",
     "type": "object",
-    "required": [ "id__time", "type__namespace" ],
+    "required": [ "time__time", "id__id", "type__namespace" ],
     "properties": {
-        "id__time": {
+        "id__id": {
+            "$ref": "#/definitions/uuid",
+            "description": "A unique identifier for the event. Required for each event."
+        },
+        "time__time": {
             "$ref": "#/definitions/datetime",
-            "description": "A timestamp for when the event occurred. Microsecond precision. Please only use time stamps in UTC. Note that this IS the unique id for the event! If you want to overwrite an earlier event (to fix it, delete it, etc), you should use this id to refer to it, since there is no other way to identify a single event."
+            "description": "A timestamp for when the event occurred. Microsecond precision. Please only use time stamps in UTC."
         },
         "type__namespace": {
             "$ref": "#/definitions/namespace",
