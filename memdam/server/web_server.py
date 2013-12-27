@@ -2,11 +2,11 @@
 
 import flask
 
-import memdam.server.web
+import memdam.server.web.urls
 
-#TODO: refactor auth stuff
 #TODO: unit tests of each
 #TODO: integration tests of server
+#TODO: refactor auth stuff
 #TODO: client
 #TODO: unit tests of client
 #TODO: integration tests of client and server
@@ -15,4 +15,4 @@ import memdam.server.web
 #TODO: deployment (joshalbrecht.chronographr.com)
 
 if __name__ == '__main__':
-    memdam.server.web.app.run(debug = True)
+    memdam.server.web.urls.app.run(debug = True)
