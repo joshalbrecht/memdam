@@ -2,6 +2,7 @@
 import flask
 
 import memdam.common.event
+import memdam.server.web.errors
 import memdam.server.web.utils
 import memdam.server.web.auth
 
@@ -22,7 +23,7 @@ def events(event_id):
         return flask.jsonify(event_json)
     else:
         if not flask.request.json:
-            flask.abort(400)
+            raise memdam.server.web.errors.BadRequest("Must send JSON for events.")
         assert 'id__id' not in flask.request.json or flask.request.json['id__id'] == event_id, \
             "id__id field must be undefined or equal to the id in the event"
         flask.request.json['id__id'] = event_id
