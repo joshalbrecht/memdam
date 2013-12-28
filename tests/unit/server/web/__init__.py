@@ -11,6 +11,7 @@ class FlaskResourceTestCase(unittest.TestCase):
     """
 
     def setUp(self):
+        self.app = app
         app.config['DATABASE'] = ":memory:"
         app.config['TESTING'] = True
         self.client = app.test_client()

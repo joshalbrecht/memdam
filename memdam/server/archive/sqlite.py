@@ -66,9 +66,9 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
             conn = self._connect(table_name, 'r')
             namespace = table_name.replace("_", ".")
             cur = conn.cursor()
-            names = [x[0] for x in cur.description]
             sql = "SELECT * FROM %s;" % (table_name)
             execute_sql(cur, sql)
+            names = [x[0] for x in cur.description]
             for row in cur.fetchall():
                 return _create_event_from_row(row, names, namespace, conn)
         raise Exception("event with id %s not found" % (event_id))
@@ -285,6 +285,8 @@ def _create_event_from_row(row, names, namespace, conn):
     table_name = namespace.replace(".", "_")
     for i in range(0, len(names)):
         name = names[i]
+        if name == '_id':
+            continue
         value = row[i]
         if value != None:
             field_type = memdam.common.event.Event.field_type(name)
