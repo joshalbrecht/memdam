@@ -24,13 +24,9 @@ def events(event_id):
         if not flask.request.json:
             flask.abort(400)
         assert 'id__id' not in flask.request.json or flask.request.json['id__id'] == event_id, \
-            "id__id field must be defined and equal to the id in the event"
+            "id__id field must be undefined or equal to the id in the event"
         flask.request.json['id__id'] = event_id
         #TODO: run more validation on event json
         event = memdam.common.event.Event.from_json_dict(flask.request.json)
         memdam.server.web.utils.get_archive().save([event])
         return '', 204
-
-
-
-
