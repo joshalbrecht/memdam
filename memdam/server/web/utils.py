@@ -30,6 +30,7 @@ def get_blobstore():
         blobstore = flask.g._blobstore = memdam.server.blobstore.Blobstore(base_folder)
     return blobstore
 
+#TODO: evaluate this for security issues. Should probably be careful about user and permissions when writing data.
 def make_temp_path():
     """
     :returns: a temporary file name

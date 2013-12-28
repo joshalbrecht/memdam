@@ -1,17 +1,27 @@
 
+import uuid
+import os
+import shutil
+
+import memdam.server.web.utils
 import memdam.server.blobstore
 
 def test_blobstore():
     """Check that the blobstore works as expected."""
+    temp_folder = memdam.server.web.utils.make_temp_path()
+    os.mkdir(temp_folder)
     blobstore = memdam.server.blobstore.Blobstore(temp_folder)
-    blobstore.set_raw(blob_id, extension, data)
-    #TODO: change blobstore interface to not expose path.
-    #maybe then we can make an alternative implementation that stores the binaries encrypted in S3 instead
-    #or at any other location. Then it would be much easier to move around the event storage, which is much smaller
-    #
-    #perhaps change to get(id, ext, dest_path)
-    #and then just clean up usually
-    #then we can store anywhere
-    #
-    #in the future, could even store in glacier (though we'd need a bit of customness to pull out the right binaries)
-    blobstore.get_path(blob_id, extension)
+    temp_in_file = memdam.server.web.utils.make_temp_path()
+    file_data = 'some\ndata'
+    with open(temp_in_file, 'wb') as outfile:
+        outfile.write(file_data)
+    blob_id = uuid.uuid4()
+    extension = "txt"
+    blobstore.set_data_from_file(blob_id, extension, temp_in_file)
+    temp_out_file = memdam.server.web.utils.make_temp_path()
+    blobstore.get_data_to_file(blob_id, extension, temp_out_file)
+    with open(temp_out_file, 'rb') as infile:
+        assert infile.read() == file_data
+    os.remove(temp_in_file)
+    os.remove(temp_out_file)
+    shutil.rmtree(temp_folder)

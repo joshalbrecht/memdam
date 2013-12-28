@@ -10,22 +10,7 @@ class Blobstore(object):
     def __init__(self, folder):
         self._folder = folder
 
-    def set_from_flask(self, blob_id, extension, uploaded_file):
-        """
-        Save a file that was uploaded to flask.
-
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
-        :param uploaded_file: the file object from flask to save directly to a file
-        :type  uploaded_file: ???
-        """
-        path = self._get_path(blob_id, extension)
-        _make_folders(path)
-        uploaded_file.save(path)
-
-    def set_raw(self, blob_id, extension, raw_data):
+    def set_data_from_file(self, blob_id, extension, input_path):
         """
         Save a file based on the raw data.
 
@@ -33,13 +18,12 @@ class Blobstore(object):
         :type  blob_id: uuid.UUID
         :param extension: a lowercase file extension
         :type  extension: string
-        :param raw_data: the bytes to write to the file
-        :type  raw_data: string
+        :param output_path: path with the data that should be written
+        :type  output_path: string
         """
         path = self._get_path(blob_id, extension)
         _make_folders(path)
-        with open(path, "wb") as out_file:
-            out_file.write(raw_data)
+        shutil.copyfile(input_path, path)
 
     def get_data_to_file(self, blob_id, extension, output_path):
         """
