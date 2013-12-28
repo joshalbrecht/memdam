@@ -11,11 +11,11 @@ import memdam.server.web.events
 
 import tests.unit.server.web
 
-NAMESPACE = "whatever"
-event = memdam.common.event.Event(memdam.common.timeutils.now(), NAMESPACE, cpu__number__percent=0.567)
+event = memdam.common.event.Event(memdam.common.timeutils.now(), "whatever", cpu__number__percent=0.567)
 event_json = json.dumps(event.to_json_dict())
 
-#TODO: make more test cases (put, get, validate, look at coverage, doc, etc (but not too crazy since we want to make the client too))
+#TODO: make client
+#TODO: test client
 #TODO: make test cases of other resources
 
 class CreateTest(tests.unit.server.web.FlaskResourceTestCase):
