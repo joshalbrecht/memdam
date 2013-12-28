@@ -14,10 +14,6 @@ import tests.unit.server.web
 event = memdam.common.event.Event(memdam.common.timeutils.now(), "whatever", cpu__number__percent=0.567)
 event_json = json.dumps(event.to_json_dict())
 
-#TODO: make client
-#TODO: test client
-#TODO: make test cases of other resources
-
 class CreateTest(tests.unit.server.web.FlaskResourceTestCase):
     def runTest(self):
         """PUTting an Event succeeds"""

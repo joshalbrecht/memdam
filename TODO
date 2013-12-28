@@ -1,0 +1,17 @@
+blobstore unit tests
+sqlite unit tests
+sqlite integration tests (probably exactly the same but use a file instead of memory)
+blobs resource unit tests
+client integration tests
+replace smtp transport with http
+fix server integration and unit tests
+make screenshot collector
+deployment scripts
+
+future (collectors)
+finish gmail import
+
+future (when I have something I want to query for)
+query sqlite tests
+query web tests
+query client integration tests

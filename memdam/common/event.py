@@ -172,6 +172,13 @@ class Event(object):
                 data[key] = dateutil.parser.parse(data[key])
             elif Event.field_type(key) == FieldType.ID:
                 data[key] = uuid.UUID(data[key])
+        return Event.from_keys_dict(data)
+
+    @staticmethod
+    def from_keys_dict(data):
+        """
+        DESTROYS THE DICT THAT YOU PASS IN.
+        """
         sample_time = data['time__time']
         del data['time__time']
         namespace = data['type__namespace']

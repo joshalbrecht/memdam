@@ -1,4 +1,5 @@
 
+import os
 import base64
 
 import flask
@@ -18,6 +19,7 @@ def blobs(blob_id, extension):
     if flask.request.method == 'PUT':
         if flask.request.json:
             if not 'data' in flask.request.json:
+                #TODO: change to other error format
                 flask.abort(401, "Must base64 encode the data into the 'data' key")
             raw_data = base64.b64decode(flask.request.json['data'])
             memdam.server.web.utils.get_blobstore().set_raw(blob_id, extension, raw_data)
@@ -28,7 +30,18 @@ def blobs(blob_id, extension):
             memdam.server.web.utils.get_blobstore().set_from_flask(blob_id, extension, uploaded_file)
         else:
             flask.abort(401, "Must use json or multipart/form-data upload methods")
+        return '', 204
     else:
-        #if we have the file and extension, return it
-        filename = memdam.server.web.utils.get_blobstore().get_path(blob_id, extension)
-        return flask.send_file(filename)
+        filename = memdam.server.web.utils.make_temp_path()
+        memdam.server.web.utils.get_blobstore().get_data_to_file(blob_id, extension, filename)
+        with FileResponseCleaner(filename):
+            return flask.send_file(filename)
+
+class FileResponseCleaner(object):
+    """Simply deletes the file when the context"""
+    def __init__(self, filename):
+        self.filename = filename
+    def __enter__(self):
+        pass
+    def __exit__(self, extype, value, traceback):
+        os.remove(self.filename)

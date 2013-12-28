@@ -7,7 +7,7 @@ import memdam.server.web.auth
 
 blueprint = flask.Blueprint('queries', __name__)
 
-@blueprint.route('/', methods = ['POST'])
+@blueprint.route('', methods = ['POST'])
 @memdam.server.web.auth.requires_auth
 def query_events():
     """
