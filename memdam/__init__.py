@@ -45,6 +45,11 @@ def create_logger(handlers, level, name):
 SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN, name='default')
 log = SIMPLE_LOGGER
 
+def use_debug_logger():
+    """Convenience function. Call this to log all statements (TRACE and above) to STDOUT"""
+    global log
+    log = create_logger([STDOUT_HANDLER], TRACE, name='testlogger')
+
 #access these globals for runtime options (enable debugging, etc)
 class Config(object):
     """a simple configuration object, before anything is loaded"""

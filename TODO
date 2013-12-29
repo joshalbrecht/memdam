@@ -1,10 +1,10 @@
-blobstore unit tests
-sqlite unit tests
-sqlite integration tests (probably exactly the same but use a file instead of memory)
+sqlite tests
+fix blob resource logic (errors, validation)
 blobs resource unit tests
 client integration tests
 replace smtp transport with http
 fix server integration and unit tests
+check test coverage
 make screenshot collector
 deployment scripts
 
@@ -15,3 +15,7 @@ future (when I have something I want to query for)
 query sqlite tests
 query web tests
 query client integration tests
+
+future (deployment)
+encrypt blobs and store in S3 with a policy to archive to glacier (nice and cheap, recent data is accessible, distant data can still be accessed but is more costly)
+    benefit is that MUCH less needs to be stored on the server drive (only the actual event data, which is MUCH smaller)

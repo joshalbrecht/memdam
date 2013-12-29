@@ -4,6 +4,7 @@ import base64
 
 import flask
 
+import memdam.common.utils
 import memdam.server.web.utils
 import memdam.server.web.auth
 
@@ -16,7 +17,7 @@ def blobs(blob_id, extension):
     """
     Get/set blobs based on unique ids
     """
-    filename = memdam.server.web.utils.make_temp_path()
+    filename = memdam.common.utils.make_temp_path()
     if flask.request.method == 'PUT':
         if flask.request.json:
             if not 'data' in flask.request.json:
