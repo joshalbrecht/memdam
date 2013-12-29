@@ -50,7 +50,20 @@ class SqliteBase(unittest.TestCase):
         event = memdam.common.event.Event(
             memdam.common.timeutils.now(),
             NAMESPACE,
-            cpu__number__percent=0.567)
+            cpu__number__percent=0.567,
+            a__string__rfc123="Didnt+Look+Up+This+Data+Format",
+            b__text="string for searching",
+            #TODO: add a RAW type--like string, but pure binary, no index, transferred via json as b64 encoded, stored as blob
+            c__enum__country="USA",
+            d__bool=True,
+            e__time=memdam.common.timeutils.now(),
+            #TODO: change storage to blob probably: http://eli.thegreenplace.net/2009/05/29/storing-blobs-in-a-sqlite-db-with-pythonpysqlite/
+            f__id=uuid.uuid4(),
+            g__long=3452987345693464754826L,
+            h__file=self.blob_url + "/" + uuid.uuid4() + '.txt',
+            i__namespace="some.thing",
+            #TODO: list of strings (to addresses for emails)? list of files (attachments for emails)? Probably want a list of everything else
+        )
         self.archive.save([event])
         returned_events = set(self.archive.find())
         nose.tools.eq_(returned_events, set([event]))
