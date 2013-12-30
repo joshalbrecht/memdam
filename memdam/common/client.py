@@ -1,4 +1,5 @@
 
+import copy
 import uuid
 import base64
 import json
@@ -22,12 +23,15 @@ class MemdamClient(object):
         self._server_url = server_url
         self._request_kwargs = dict(
             headers={
+                'Content-Type': 'application/json',
                 "Accept": "application/json",
                 'Authorization': 'Basic ' + base64.b64encode(username + ":" + password)
             },
             #wait a few minutes before we conclude that the server is not responding
             timeout=180.0
         )
+        self._file_upload_request_kwargs = copy.deepcopy(self._request_kwargs)
+        del self._file_upload_request_kwargs['headers']['Content-Type']
 
     def load_event(self, event_id):
         """
@@ -40,7 +44,7 @@ class MemdamClient(object):
         :raises: memdam.common.client.ServerError
         """
         response = requests.get(self._server_url + "/events/" + event_id.hex, **self._request_kwargs)
-        response.raise_for_status()
+        _validate_response(response)
         return memdam.common.event.Event.from_json_dict(response.json())
 
     def save_event(self, event):
@@ -54,7 +58,7 @@ class MemdamClient(object):
         new_event = self._save_files_in_event(event)
         event_json = json.dumps(new_event.to_json_dict())
         response = requests.put(self._server_url + "/events/" + new_event.id__id.hex, data=event_json, **self._request_kwargs)
-        response.raise_for_status()
+        _validate_response(response)
 
     def find_events(self, query):
         """
@@ -68,8 +72,8 @@ class MemdamClient(object):
         :raises: memdam.common.client.ServerError
         """
         query_json = json.dumps(query.to_json_dict())
-        response = requests.put(self._server_url + "/queries", data=query_json, **self._request_kwargs)
-        response.raise_for_status()
+        response = requests.post(self._server_url + "/queries", data=query_json, **self._request_kwargs)
+        _validate_response(response)
         event_json_list = response.json()
         event_list = [memdam.common.event.Event.from_json_dict(x) for x in event_json_list]
         return event_list
@@ -104,12 +108,31 @@ class MemdamClient(object):
         :rtype: string
         """
         assert url.startswith("file://")
-        path = url[:len("file://")]
+        path = url[len("file://"):]
         files = {'file': open(path, 'rb')}
         blob_id = uuid.uuid4()
         extension = path.split('.')[-1].lower()
         assert len(extension) == 3, "files should end in a 3 letter extension, for sanity"
-        new_url = self._server_url + "/blobs/" + blob_id + "." + extension
-        response = requests.post(new_url, files=files)
-        response.raise_for_status()
+        new_url = self._server_url + "/blobs/" + blob_id.hex + "." + extension
+        response = requests.put(new_url, files=files, **self._file_upload_request_kwargs)
+        _validate_response(response)
         return new_url
+
+def _validate_response(response):
+    try:
+        response.raise_for_status()
+    except requests.RequestException, e:
+        try:
+            extra_data = response.json()
+        except Exception:
+            raise e
+        raise MemdamSpecificError(extra_data)
+
+class MemdamSpecificError(requests.RequestException):
+    """Subclassing requests error type to provide extra info when available"""
+    def __init__(self, data):
+        requests.RequestException.__init__(self)
+        self.data = data
+
+    def __str__(self):
+        return "Request failed: " + str(self.data)

@@ -2,6 +2,7 @@
 import werkzeug.exceptions
 import flask
 
+import memdam
 from memdam.server.web import app
 
 #register all of the blueprints (urls)
@@ -26,4 +27,5 @@ def handle_errors(err):
         status_code = 500
     response_data['code'] = status_code
     response_data['failed'] = True
+    memdam.log.info("Request failed: " + str(response_data))
     return flask.make_response(flask.jsonify(response_data), status_code)

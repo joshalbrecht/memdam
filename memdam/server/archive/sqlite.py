@@ -63,7 +63,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
 
     def get(self, event_id):
         for table_name in self._all_table_names():
-            conn = self._connect(table_name, 'r')
+            conn = self._connect(table_name, read_only=True)
             namespace = table_name.replace("_", ".")
             cur = conn.cursor()
             sql = "SELECT * FROM %s;" % (table_name)
@@ -82,7 +82,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
 
     def _find_matching_events_in_table(self, table_name, query):
         #TODO: actually respect query :(
-        conn = self._connect(table_name, 'r')
+        conn = self._connect(table_name, read_only=True)
         namespace = table_name.replace("_", ".")
         cur = conn.cursor()
         args = ()
@@ -119,22 +119,21 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
             self.memory_connection = sqlite3.connect(self.folder, isolation_level="EXCLUSIVE")
         return self.memory_connection
 
-    def _connect(self, table_name, mode='r'):
+    def _connect(self, table_name, read_only=True):
         """
         Connect to the database with this namespace in it.
         """
         if self.folder == ":memory:":
             return self._get_or_create_memory_connection()
         db_file = os.path.join(self.folder, table_name)
-        memdam.log.trace("Connecting to %s in %s mode" % (db_file, mode))
-        if mode == 'w':
-            return sqlite3.connect(db_file, isolation_level="EXCLUSIVE")
-        elif mode == 'r':
+        memdam.log.trace("Connecting to %s in read only mode? %s" % (db_file, read_only))
+        if read_only:
             conn = sqlite3.connect(db_file, isolation_level="DEFERRED")
             #TODO: set PRAGMA read_uncommitted = TRUE;
             #otherwise can't read while writing
             return conn
-        raise Exception('Invalid database access mode (%s), must be "r" or "w"' % (mode))
+        else:
+            return sqlite3.connect(db_file, isolation_level="EXCLUSIVE")
 
     def _save_events(self, events, table_name):
         """
@@ -144,7 +143,7 @@ class SqliteArchive(memdam.server.archive.archiveinterface.ArchiveInterface):
         if len(events) <= 0:
             return
         assert re.compile(r"[a-z][a-z_]*").match(table_name), "Should only use a-z and '_' in namespaces"
-        conn = self._connect(table_name, 'w')
+        conn = self._connect(table_name, read_only=False)
         cur = conn.cursor()
         existing_columns = self._query_existing_columns(cur, table_name)
         key_names = set()
@@ -265,9 +264,9 @@ def make_value_tuple(event, key_names, event_id):
             #convert text tuple entries into references to the actual text data
             elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
                 value = event_id
-            #convert UUIDs to hex representation for now
+            #convert UUIDs to byte representation
             elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.ID:
-                value = value.hex
+                value = buffer(value.bytes)
         values.append(value)
     return values
 
@@ -297,7 +296,7 @@ def _create_event_from_row(row, names, namespace, conn):
                 execute_sql(cur, "SELECT data FROM %s__%s__docs WHERE docid = '%s';" % (table_name, name, value))
                 value = cur.fetchall()[0][0]
             elif field_type == memdam.common.event.FieldType.ID:
-                value = uuid.UUID(value)
+                value = uuid.UUID(bytes=value)
         data[name] = value
     sample_time = data['time__time']
     del data['time__time']
@@ -324,6 +323,7 @@ class SqliteColumn(object):
         #this might seems strange, but it's because we store an index to a document in another table
         memdam.common.event.FieldType.TEXT: 'INTEGER',
         memdam.common.event.FieldType.ENUM: 'TEXT',
+        memdam.common.event.FieldType.RAW: 'BLOB',
         memdam.common.event.FieldType.BOOL: 'BOOL',
         memdam.common.event.FieldType.TIME: 'INTEGER',
         memdam.common.event.FieldType.ID: 'TEXT',
@@ -355,9 +355,9 @@ class SqliteColumn(object):
         if self.is_text:
             execute_sql(cur, "CREATE VIRTUAL TABLE %s__%s__docs USING fts4(data,tokenize=porter);" % (self.table_name, self.column_name))
         execute_sql(cur, "ALTER TABLE %s ADD COLUMN %s %s;" % (self.table_name, self.column_name, self.sql_type))
-        assert self.sql_index != None
-        index_name = self.table_name + "__" + self.column_name + "__" + self.sql_index
-        execute_sql(cur, "CREATE INDEX %s ON %s (%s %s);" % (index_name, self.table_name, self.column_name, self.sql_index))
+        if self.sql_index != None:
+            index_name = self.table_name + "__" + self.column_name + "__" + self.sql_index
+            execute_sql(cur, "CREATE INDEX %s ON %s (%s %s);" % (index_name, self.table_name, self.column_name, self.sql_index))
 
     def __repr__(self):
         data_type_name = memdam.common.event.FieldType.names[self.data_type]
@@ -382,6 +382,8 @@ class SqliteColumn(object):
         :returns: the sqlite type corresponding to our index type
         :rtype: string
         """
+        if self.data_type == memdam.common.event.FieldType.RAW:
+            return None
         return 'ASC'
 
     @staticmethod

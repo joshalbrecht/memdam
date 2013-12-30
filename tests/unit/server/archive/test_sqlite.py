@@ -30,45 +30,51 @@ class SqliteBase(unittest.TestCase):
         unittest.TestCase.__init__(self, *args, **kwargs)
         self.blob_url = "https://127.0.0.1/testcasepath"
         self.archive = memdam.server.archive.sqlite.SqliteArchive(folder, self.blob_url)
-
-    def test_get(self):
-        """Getting a single Event by id should succeed"""
-        event = memdam.common.event.Event(
+        self.simple_event = memdam.common.event.Event(
             memdam.common.timeutils.now(),
             NAMESPACE,
             cpu__number__percent=0.567)
-        self.archive.save([event])
-        nose.tools.eq_(self.archive.get(event.id__id), event)
+        self.complex_event = memdam.common.event.Event(
+            memdam.common.timeutils.now(),
+            NAMESPACE,
+            cpu__number__percent=0.567,
+            a__string__rfc123="Didnt+Look+Up+This+Data+Format",
+            b__text="string for searching",
+            c__enum__country="USA",
+            d__bool=True,
+            e__time=memdam.common.timeutils.now(),
+            f__id=uuid.uuid4(),
+            g__long=184467440737095516L,
+            h__file=self.blob_url + "/" + uuid.uuid4().hex + '.txt',
+            i__namespace="some.thing",
+            j__raw=buffer(uuid.uuid4().bytes),
+        )
+
+    def test_get(self):
+        """Getting a single Event by id should succeed"""
+        self.archive.save([self.simple_event])
+        nose.tools.eq_(self.archive.get(self.simple_event.id__id), self.simple_event)
 
     @nose.tools.raises(Exception)
     def test_get_fails_with_bad_id(self):
         """Getting a single Event by id should raise an Exception if the id is not defined"""
         self.archive.get(uuid.uuid4())
 
+    def test_save_multiple_times(self):
+        """Saving lots of events (and events twice) should succeed"""
+        self.archive.save([self.complex_event])
+        self.archive.save([self.complex_event])
+        self.archive.save([self.simple_event])
+        returned_events = set(self.archive.find())
+        nose.tools.eq_(returned_events, set([self.complex_event, self.simple_event]))
+
     def test_save_all_data_types(self):
         """Saving and loading an event should work with all data types"""
-        event = memdam.common.event.Event(
-            memdam.common.timeutils.now(),
-            NAMESPACE,
-            cpu__number__percent=0.567,
-            a__string__rfc123="Didnt+Look+Up+This+Data+Format",
-            b__text="string for searching",
-            #TODO: add a RAW type--like string, but pure binary, no index, transferred via json as b64 encoded, stored as blob
-            c__enum__country="USA",
-            d__bool=True,
-            e__time=memdam.common.timeutils.now(),
-            #TODO: change storage to blob probably: http://eli.thegreenplace.net/2009/05/29/storing-blobs-in-a-sqlite-db-with-pythonpysqlite/
-            f__id=uuid.uuid4(),
-            g__long=3452987345693464754826L,
-            h__file=self.blob_url + "/" + uuid.uuid4() + '.txt',
-            i__namespace="some.thing",
-            #TODO: list of strings (to addresses for emails)? list of files (attachments for emails)? Probably want a list of everything else
-        )
-        self.archive.save([event])
+        self.archive.save([self.complex_event])
         returned_events = set(self.archive.find())
-        nose.tools.eq_(returned_events, set([event]))
+        nose.tools.eq_(returned_events, set([self.complex_event]))
 
-    def test_save_multiple_events(self):
+    def test_save_multiple_events_at_once(self):
         """Saving multiple Events should succeed"""
         sample_time = memdam.common.timeutils.now
         events = [
@@ -81,7 +87,6 @@ class SqliteBase(unittest.TestCase):
         nose.tools.eq_(returned_events, set(events))
 
     #TODO: decide whether attributes with the same name and different types are allowed, and make a test
-
     #TODO (far future) test queries
 
 class MemoryTest(SqliteBase):
@@ -104,7 +109,7 @@ class LocalFileTest(SqliteBase):
             shutil.rmtree(self._temp_file)
 
 if __name__ == '__main__':
-    tester = LocalFileTest()
+    tester = MemoryTest()
     tester.setUp()
-    tester.test_save_all_data_types()
+    tester.test_save_multiple_times()
     tester.tearDown()

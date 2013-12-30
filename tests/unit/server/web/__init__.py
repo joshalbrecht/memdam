@@ -12,7 +12,7 @@ class FlaskResourceTestCase(unittest.TestCase):
 
     def setUp(self):
         self.app = app
-        app.config['DATABASE'] = ":memory:"
+        app.config['DATABASE_FOLDER'] = ":memory:"
         app.config['TESTING'] = True
         self.client = app.test_client()
         self.headers = {

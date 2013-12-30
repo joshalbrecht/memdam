@@ -1,38 +1,41 @@
 
+import uuid
+import re
 import os
 import base64
 
 import flask
 
 import memdam.common.utils
+import memdam.server.web.errors
 import memdam.server.web.utils
 import memdam.server.web.auth
 
 blueprint = flask.Blueprint('blobs', __name__)
 
-#TODO: input validation
-@blueprint.route('/<blob_id>.<extension>', methods = ['GET', 'PUT'])
+@blueprint.route('/<unsafe_blob_id>.<unsafe_extension>', methods = ['GET', 'PUT'])
 @memdam.server.web.auth.requires_auth
-def blobs(blob_id, extension):
+def blobs(unsafe_blob_id, unsafe_extension):
     """
     Get/set blobs based on unique ids
     """
+    blob_id = validate_uuid(unsafe_blob_id)
+    extension = validate_extension(unsafe_extension)
     filename = memdam.common.utils.make_temp_path()
     if flask.request.method == 'PUT':
         if flask.request.json:
             if not 'data' in flask.request.json:
-                #TODO: change to other error format
-                flask.abort(401, "Must base64 encode the data into the 'data' key")
+                raise memdam.server.web.errors.BadRequest("Must base64 encode the data into the 'data' key")
             raw_data = base64.b64decode(flask.request.json['data'])
             with open(filename, "wb") as out_file:
                 out_file.write(raw_data)
-        elif flask.request.content_type == 'multipart/form-data':
+        elif 'multipart/form-data' in flask.request.content_type:
             if not len(flask.request.files) == 1:
-                flask.abort(401, "Must only upload one file at a time")
+                raise memdam.server.web.errors.BadRequest("Must only upload one file at a time")
             uploaded_file = flask.request.files.values()[0]
             uploaded_file.save(filename)
         else:
-            flask.abort(401, "Must use json or multipart/form-data upload methods")
+            raise memdam.server.web.errors.BadRequest("Must use json or multipart/form-data upload methods")
         memdam.server.web.utils.get_blobstore().set_data_from_file(blob_id, extension, filename)
         os.remove(filename)
         return '', 204
@@ -40,6 +43,33 @@ def blobs(blob_id, extension):
         memdam.server.web.utils.get_blobstore().get_data_to_file(blob_id, extension, filename)
         with FileResponseCleaner(filename):
             return flask.send_file(filename)
+
+def validate_uuid(unsafe_blob_id):
+    """
+    :param unsafe_blob_id: input from the user that should represent a uuid (hex encoded)
+    :type  unsafe_blob_id: string
+    :returns: the UUID that is referred to
+    :rtype: uuid.UUID
+    :raises: memdam.server.web.errors.BadRequest (if the input is not valid)
+    """
+    if not re.compile(r"^[0-9a-fA-F]+$").match(unsafe_blob_id):
+        raise memdam.server.web.errors.BadRequest("blob id should consist of only hex characters")
+    if len(unsafe_blob_id) != 32:
+        raise memdam.server.web.errors.BadRequest("blob id should have exactly 32 characters")
+    blob_id = unsafe_blob_id.lower()
+    return uuid.UUID(blob_id)
+
+def validate_extension(unsafe_extension):
+    """
+    :param unsafe_extension: input from the user that should represent a valid file extension
+    :type  unsafe_extension: string
+    :returns: the (possibly cleaned) file extension
+    :rtype: string
+    :raises: memdam.server.web.errors.BadRequest (if the input is not valid)
+    """
+    if not re.compile(r"^[0-9a-zA-Z]+$").match(unsafe_extension):
+        raise memdam.server.web.errors.BadRequest("extension should consist of only characters a-z and 0-9")
+    return unsafe_extension.lower()
 
 class FileResponseCleaner(object):
     """Simply deletes the file when the context"""

@@ -13,7 +13,7 @@ def test_put_event():
     """
     Check that events can be saved to the server
     """
-    app.config['DATABASE'] = ":memory:"
+    app.config['DATABASE_FOLDER'] = ":memory:"
     app.config['TESTING'] = True
     client = app.test_client()
     event = memdam.common.event.Event(memdam.common.timeutils.now(), NAMESPACE, cpu__number__percent=0.567)

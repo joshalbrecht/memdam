@@ -3,8 +3,7 @@ import logging
 import sys
 import time
 
-# pylint: disable=E0611,W0611
-from nose.tools import assert_raises, assert_eq
+import nose.tools
 
 import memdam
 import memdam.common.parallel
@@ -44,8 +43,8 @@ def _check_logging(log_name):
     _print_some_statements(8)
     for process in processes:
         process.join()
-        assert_equals(process.exitcode, 0)
-    assert_equals(len(message_counter.messages), 5+6+8)
+        nose.tools.eq_(process.exitcode, 0)
+    nose.tools.eq_(len(message_counter.messages), 5+6+8)
     memdam.log.handlers[0]._shutdown()
 
 def _print_some_statements(num):

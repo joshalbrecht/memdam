@@ -1,12 +1,40 @@
-sqlite tests
-fix blob resource logic (errors, validation)
 blobs resource unit tests
+    waiting on internet to figure out how to upload a file to flask
+fix memdam.log
+    either look at how it works for flask
+    or call start logging thingy
+    especially important to replace the call in urls (error handling)
+put stack trace in error responses, at least for now (for easier debugging)
 client integration tests
+    at least one runs... :)
+        though it seems to be unclean
+        err, actually just the output is duplicated...  nosetests tests/integration/test_web_client.py
 replace smtp transport with http
+    need to think about the architecture a little bit--probably should just have an event queue and things that consume directly from that
+        think that files should be forced to be assigned uuids immediately, NOT on every send
+        that way we don't end up making duplicate orphaned files in the usual case
+        plus the data can be moved to a safe place until ready...
+            which could even be a blobstore and archive... see no reason to do it any other way really
+        then we dont even need any fancy queues, etc
+        collectors just directly insert into archive and blobstore (local)
+        then another process that synchs from one blobstore/archive to another
+            I suppose maybe they should be combined into another entity...
+            oh ya, abstract the client interface
 fix server integration and unit tests
 check test coverage
 make screenshot collector
 deployment scripts
+
+
+#TODO: unit tests of each
+#TODO: integration tests of server
+#TODO: refactor auth stuff
+#TODO: client
+#TODO: unit tests of client
+#TODO: integration tests of client and server
+#TODO: use rest client instead of email
+#TODO: ssl: http://flask.pocoo.org/snippets/111/
+#TODO: deployment (joshalbrecht.chronographr.com)
 
 future (collectors)
 finish gmail import
@@ -19,39 +47,3 @@ query client integration tests
 future (deployment)
 encrypt blobs and store in S3 with a policy to archive to glacier (nice and cheap, recent data is accessible, distant data can still be accessed but is more costly)
     benefit is that MUCH less needs to be stored on the server drive (only the actual event data, which is MUCH smaller)
-
-
-TEMP:
-import sqlite3 as sqlite
-
-# Create a new in-memory DB and a cursor
-#
-con = sqlite.connect(':memory:')
-cur = con.cursor()
-
-# The table is named 'frames'
-# The columns are: a running ID, and a data blob
-#
-cur.execute('''
-    create table frames (
-        id integer primary key,
-        data blob)''')
-
-# Shove some data into the table. The data stored
-# using the sqlite.Binary type, which means a BLOB.
-#
-cur.execute('''
-    insert into frames values (null, ?)''',
-    (sqlite.Binary('\0' * 10 + '\x12'),))
-cur.execute('''
-    insert into frames values (null, ?)''',
-    (sqlite.Binary('\x01\x42\x55'),))
-
-# Now read it back. When BLOBs are read, they're
-# converted to Python buffers of type 'buffer'
-#
-for row in cur.execute("select * from frames"):
-    print row[0], str(row[1]).encode('hex')
-
-cur.close()
-con.close()

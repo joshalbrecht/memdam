@@ -1,4 +1,5 @@
 
+import base64
 import types
 import datetime
 import uuid
@@ -8,7 +9,7 @@ from fn.monad import Option
 
 import memdam.common.enum
 
-FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
+FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'RAW', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
 
 class Event(object):
     """
@@ -61,7 +62,9 @@ class Event(object):
         for key, value in kwargs.items():
             if value != None:
                 #validate that the argument names and types conform to the above specification.
-                Event.field_type(key)
+                field_type = Event.field_type(key)
+                if field_type == FieldType.LONG:
+                    assert value < 18446744073709551616L
                 assert key == key.lower()
                 setattr(self, key, value)
                 if not isinstance(getattr(self, key), types.FunctionType):
@@ -96,6 +99,8 @@ class Event(object):
                 value = value.isoformat()
             elif isinstance(value, uuid.UUID):
                 value = value.hex
+            elif isinstance(value, buffer):
+                value = base64.b64encode(value)
             new_dict[key] = value
         return new_dict
 
@@ -103,7 +108,7 @@ class Event(object):
         return self.to_json_dict().__eq__(other.to_json_dict())
 
     def __hash__(self):
-        return hash(_make_hash_key(self.to_json_dict()))
+        return hash(tuple(_make_hash_key(self.to_json_dict())))
 
     @property
     def time(self):
@@ -168,10 +173,13 @@ class Event(object):
         """
         keys = list(data.keys())
         for key in keys:
-            if Event.field_type(key) == FieldType.TIME:
+            field_type = Event.field_type(key)
+            if field_type == FieldType.TIME:
                 data[key] = dateutil.parser.parse(data[key])
-            elif Event.field_type(key) == FieldType.ID:
+            elif field_type == FieldType.ID:
                 data[key] = uuid.UUID(data[key])
+            elif field_type == FieldType.RAW:
+                data[key] = buffer(base64.b64decode(data[key]))
         return Event.from_keys_dict(data)
 
     @staticmethod
@@ -188,5 +196,6 @@ class Event(object):
 def _make_hash_key(data):
     """recursively make a bunch of tuples out of a dict for stable hashing"""
     if hasattr(data, '__iter__'):
-        return ((key, _make_hash_key(data[key])) for key in data)
+        sorted_keys = sorted([x for x in data])
+        return ((key, _make_hash_key(data[key])) for key in sorted_keys)
     return data
