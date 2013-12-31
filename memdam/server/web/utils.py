@@ -23,7 +23,7 @@ def get_archive():
 def get_blobstore():
     """
     :returns: a new (or cached) blobstore
-    :rtype: memdam.blobstore.localfolder.Blobstore
+    :rtype: memdam.blobstore.api.Blobstore
     """
     blobstore = getattr(flask.g, '_blobstore', None)
     if blobstore is None:

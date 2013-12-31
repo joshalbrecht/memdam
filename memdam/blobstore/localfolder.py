@@ -4,7 +4,7 @@ import os
 
 class Blobstore(object):
     """
-    Just a simple place to dump files
+    Just a simple place to dump files. Uses a particular folder on local storage.
     """
 
     def __init__(self, folder):
