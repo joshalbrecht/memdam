@@ -8,7 +8,7 @@ import multiprocessing
 import memdam.common.timeutils
 import memdam.recorder.message
 import memdam.recorder.main
-import memdam.server.archive.sqlite
+import memdam.eventstore.sqlite
 import memdam.server.email_data_handler
 
 DEVICE = "somedevice"
@@ -22,7 +22,7 @@ def run_server():
     if os.path.exists(TEMP_DIR):
         shutil.rmtree(TEMP_DIR)
     os.mkdir(TEMP_DIR)
-    archive = memdam.server.archive.sqlite.SqliteArchive(TEMP_DIR)
+    archive = memdam.eventstore.sqlite.SqliteArchive(TEMP_DIR)
     memdam.server.email_data_handler.EmailDataHandler(SMTP_ADDRESS, archive)
     asyncore.loop()
 
@@ -45,7 +45,7 @@ def test_collector_and_server():
     server_process.terminate()
     collector_process.terminate()
     #and check that some events were recorded
-    archive = memdam.server.archive.sqlite.SqliteArchive(TEMP_DIR)
+    archive = memdam.eventstore.sqlite.SqliteArchive(TEMP_DIR)
     assert len(archive.find()) > 0
 
 if __name__ == '__main__':

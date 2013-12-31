@@ -20,6 +20,12 @@ replace smtp transport with http
         then another process that synchs from one blobstore/archive to another
             I suppose maybe they should be combined into another entity...
             oh ya, abstract the client interface
+        new package layout, in increasing order of complexity (may not import from a package that is farther down the list):
+            common
+            blobstore
+            eventstore
+            recorder (client) and archive (server)
+
 fix server integration and unit tests
 check test coverage
 make screenshot collector

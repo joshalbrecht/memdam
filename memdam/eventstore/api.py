@@ -1,5 +1,5 @@
 
-class ArchiveInterface(object):
+class EventstoreInterface(object):
     """
     An interface to the persistance services for storing ALL events.
     """
