@@ -54,9 +54,9 @@ class MemdamClient(object):
         return response
 
 #TODO: replace this with the python function that does it, I forgot the name
-def _merge(dest, source):
+def _merge(source, dest):
     """
-    Recursively deep copy things from source to dest dicts.
+    Recursively copy things from source to dest dicts.
     The key will be deleted if mapped to None
     """
     for key in source:
@@ -66,11 +66,11 @@ def _merge(dest, source):
             continue
         if key in dest:
             if isinstance(dest[key], types.DictType):
-                dest[key] = _merge(dest[key], source.get(key, {}))
+                dest[key] = _merge(source.get(key, {}), dest[key])
             else:
                 dest[key] = source[key]
         else:
-            dest[key] = copy.deepcopy(source[key])
+            dest[key] = source[key]
     return dest
 
 def _validate_response(response):
