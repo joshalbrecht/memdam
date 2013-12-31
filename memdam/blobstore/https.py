@@ -12,11 +12,15 @@ class Blobstore(memdam.blobstore.api.Blobstore):
     def __init__(self, client):
         self._client = client
 
+    def get_url_prefix(self):
+        return self._client.get_base_url() + "/blobs/"
+
     def set_data_from_file(self, blob_id, extension, input_path):
         files = {'file': open(input_path, 'rb')}
         extension = input_path.split('.')[-1].lower()
         new_url = "/blobs/" + blob_id.hex + "." + extension
         self._client.request("PUT", new_url, files=files, headers={'Content-Type': None})
+        return self.get_url_prefix() + blob_id.hex + "." + extension
 
     def get_data_to_file(self, blob_id, extension, output_path):
         new_url = "/blobs/" + blob_id.hex + "." + extension

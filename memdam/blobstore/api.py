@@ -4,6 +4,13 @@ class Blobstore(object):
     Interface for file storage
     """
 
+    def get_url_prefix(self):
+        """
+        :returns: the prefix for urls to access a given blob and extension
+        (ex: http://somewhere.com/blobs/)
+        :rtype: string
+        """
+
     def set_data_from_file(self, blob_id, extension, input_path):
         """
         Save a file based on the raw data.
@@ -14,6 +21,8 @@ class Blobstore(object):
         :type  extension: string
         :param output_path: path with the data that should be written
         :type  output_path: string
+        :returns: the url associated with this file
+        :rtype: string
         """
 
     def get_data_to_file(self, blob_id, extension, output_path):

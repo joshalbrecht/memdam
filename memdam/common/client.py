@@ -32,6 +32,10 @@ class MemdamClient(object):
             timeout=180.0
         )
 
+    def get_base_url(self):
+        """return the server url"""
+        return self._server_url
+
     def request(self, method, url, **kwargs):
         """
         Make a request to the remote server. Merges any kwargs into our default kwargs, so that

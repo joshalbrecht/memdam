@@ -32,9 +32,6 @@ class Eventstore(memdam.eventstore.api.Eventstore):
 
     Note: pass in a folder called :memory: to keep everything in memory for testing
 
-    blob_url_base should be something like 'https://somewhere.com/some/path/' which is the common
-    prefix for all blobs
-
     When inserting new events, automatically creates new columns if necessary.
     All columns are given appropriate indices (usually ASC, except in the case of TEXT, which is
     given an FTS virtual table, and the column in the main table because an INTEGER that refers
@@ -49,9 +46,8 @@ class Eventstore(memdam.eventstore.api.Eventstore):
     Indices are named "name__type__secondary__indextype"
     """
 
-    def __init__(self, folder, blob_url_base):
+    def __init__(self, folder):
         self.folder = folder
-        self._blob_url_base = blob_url_base
         self.memory_connection = None
 
     def save(self, events):

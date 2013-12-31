@@ -10,7 +10,11 @@ class Blobstore(memdam.blobstore.api.Blobstore):
     """
 
     def __init__(self, folder):
+        #TODO: really should be an absolute path...
         self._folder = folder
+
+    def get_url_prefix(self):
+        return "file://" + self._folder
 
     def set_data_from_file(self, blob_id, extension, input_path):
         path = self._get_path(blob_id, extension)

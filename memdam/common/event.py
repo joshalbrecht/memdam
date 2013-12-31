@@ -1,4 +1,5 @@
 
+import re
 import base64
 import types
 import datetime
@@ -11,6 +12,9 @@ import memdam.common.timeutils
 import memdam.common.enum
 
 FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'RAW', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
+
+SUPPORTED_URLS = ('file://', 'http://', 'https://')
+FILE_REGEX = re.compile(r'^[a-f0-9]{32}\.[a-z0-9]+$')
 
 def new(namespace, **kwargs):
     """Convenience function for the creation of events"""
@@ -67,6 +71,11 @@ class Event(object):
                 field_type = Event.field_type(key)
                 if field_type == FieldType.LONG:
                     assert value < 18446744073709551616L
+                if field_type == FieldType.FILE:
+                    lowered = value.lower()
+                    assert len([True for url_type in SUPPORTED_URLS if lowered.startswith(url_type)]) > 0, "All file variables must use one of the following url schemes: " + SUPPORTED_URLS
+                    assert '/' in lowered, "must use absolute file urls for file type variables"
+                    assert FILE_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
                 if isinstance(value, basestring):
                     value = unicode(value)
                 assert key == key.lower()
@@ -82,6 +91,18 @@ class Event(object):
         :returns: whatever value is associated with that key
         """
         return getattr(self, key)
+
+    def get_file_data(self, key):
+        """
+        :param key: a key from self.keys
+        :type  key: string
+        :returns: a tuple with detailed data about the file field: (blob_id, extension)
+        :rtype: (uuid.UUID, string)
+        """
+        url = self.get_field(key)
+        filename = url.split('/')[-1]
+        data = filename.split('.')
+        return (data[:-1], data[-1])
 
     def has_file(self):
         """

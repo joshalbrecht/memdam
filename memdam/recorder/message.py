@@ -30,28 +30,6 @@ class Message(object):
         self._events = events
         self._file_path = file_path
 
-    #TODO: integrate this
-    #TODO: also, note that for now we can probably directly save into the event store, and later we can add the persistence silliness (local store -> remote synching)
-    def _save_files_in_event(self, event):
-        """
-        Convert any Event into one that ONLY has files on the server where we are about to create
-        this Event by sending each of the files as blobs to the server.
-
-        :param event: the event in which to look for files
-        :type  event: memdam.common.event.Event
-        :returns: a new Event, with the same id, and all __file attributes pointing to paths on
-            self._server_url
-        :rtype: memdam.common.event.Event
-        """
-        new_event_dict = {}
-        for key in event.keys:
-            value = event.get_field(key)
-            if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.FILE:
-                if not value.startswith(self._server_url):
-                    value = self._save_file(value)
-            new_event_dict[key] = value
-        return memdam.common.event.Event(**new_event_dict)
-
     def send(self, recipients, smtp_address, username, password):
         """
         Actually perform the sending (blocking is fine)
