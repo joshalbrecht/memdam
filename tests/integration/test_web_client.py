@@ -14,7 +14,6 @@ import memdam.eventstore.https
 import memdam.server.web.urls
 import memdam.server.web_server
 
-#TODO: change file storage type to blob because it is a uuid (have to make sure all files are named correctly in events)
 def test_save_and_get_event_with_file():
     test_data = 'fw98n59askyuesfh.jzlsrkyg'
     extension = 'txt'

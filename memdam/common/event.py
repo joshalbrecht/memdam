@@ -67,10 +67,10 @@ class Event(object):
                 field_type = Event.field_type(key)
                 if field_type == FieldType.LONG:
                     assert value < 18446744073709551616L
+                if isinstance(value, basestring):
+                    value = unicode(value)
                 assert key == key.lower()
                 setattr(self, key, value)
-                if not isinstance(getattr(self, key), types.FunctionType):
-                    self.keys.add(key)
         assert hasattr(self, 'id__id')
         assert hasattr(self, 'time__time')
         assert hasattr(self, 'type__namespace')
