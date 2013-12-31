@@ -3,33 +3,17 @@ blobs resource unit tests
 fix memdam.log
     either look at how it works for flask
     or call start logging thingy
-    especially important to replace the call in urls (error handling)
-put stack trace in error responses, at least for now (for easier debugging)
-client integration tests
-    at least one runs... :)
-        though it seems to be unclean
-        err, actually just the output is duplicated...  nosetests tests/integration/test_web_client.py
-replace smtp transport with http
-    need to think about the architecture a little bit--probably should just have an event queue and things that consume directly from that
-        think that files should be forced to be assigned uuids immediately, NOT on every send
-        that way we don't end up making duplicate orphaned files in the usual case
-        plus the data can be moved to a safe place until ready...
-            which could even be a blobstore and archive... see no reason to do it any other way really
-        then we dont even need any fancy queues, etc
-        collectors just directly insert into archive and blobstore (local)
-        then another process that synchs from one blobstore/archive to another
-            I suppose maybe they should be combined into another entity...
-            oh ya, abstract the client interface
-        new package layout, in increasing order of complexity (may not import from a package that is farther down the list):
-            common
-            blobstore
-            eventstore
-            recorder (client) and archive (server)
-store files purely as blob id (no weird url nonsense, that way it never needs to be mangled and they are always nice and comparable)
+    especially important to replace the call in urls (error handling)  ing)
 
+fix blob part of integration test
+pass some arg like "in memory db" to server during integration tests
+get client integration tests working again
+store files purely as blob id (no weird url nonsense, that way it never needs to be mangled and they are always nice and comparable)
+finish removal of SMTP and queuing complexity from client
 fix server integration and unit tests
 check test coverage
 make screenshot collector
+make collector run on windows
 deployment scripts
 
 
@@ -45,6 +29,7 @@ deployment scripts
 
 future (collectors)
 finish gmail import
+store in local blob and event store first (much faster), and have a separate process that synchs from one to the other, then deletes from the original
 
 future (when I have something I want to query for)
 query sqlite tests

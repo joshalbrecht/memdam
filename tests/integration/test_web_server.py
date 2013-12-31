@@ -16,7 +16,7 @@ def test_put_event():
     app.config['DATABASE_FOLDER'] = ":memory:"
     app.config['TESTING'] = True
     client = app.test_client()
-    event = memdam.common.event.Event(memdam.common.timeutils.now(), NAMESPACE, cpu__number__percent=0.567)
+    event = memdam.common.event.new(NAMESPACE, cpu__number__percent=0.567)
     event_json = json.dumps(event.to_json_dict())
     result = client.put('/api/v1/events/' + event.id__id.hex, data=event_json, headers={
         'Content-Type': 'application/json',

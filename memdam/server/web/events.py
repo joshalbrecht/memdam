@@ -1,4 +1,6 @@
 
+import uuid
+
 import flask
 
 import memdam.common.event
@@ -8,15 +10,15 @@ import memdam.server.web.auth
 
 blueprint = flask.Blueprint('events', __name__)
 
-#TODO: inline blob handling
-@blueprint.route('/<event_id>', methods = ['PUT', 'GET'])
+@blueprint.route('/<unsafe_event_id>', methods = ['PUT', 'GET'])
 @memdam.server.web.auth.requires_auth
-def events(event_id):
+def events(unsafe_event_id):
     """
     The only way to create new Events on the server.
 
     For now, we just create the blob resources separately. Maybe someday they can be created inline too.
     """
+    event_id = uuid.UUID(unsafe_event_id)
     if flask.request.method == 'GET':
         event = memdam.server.web.utils.get_archive().get(event_id)
         event_json = event.to_json_dict()
@@ -24,9 +26,9 @@ def events(event_id):
     else:
         if not flask.request.json:
             raise memdam.server.web.errors.BadRequest("Must send JSON for events.")
-        assert 'id__id' not in flask.request.json or flask.request.json['id__id'] == event_id, \
+        assert 'id__id' not in flask.request.json or flask.request.json['id__id'] == event_id.hex, \
             "id__id field must be undefined or equal to the id in the event"
-        flask.request.json['id__id'] = event_id
+        flask.request.json['id__id'] = event_id.hex
         #TODO: run more validation on event json
         event = memdam.common.event.Event.from_json_dict(flask.request.json)
         memdam.server.web.utils.get_archive().save([event])

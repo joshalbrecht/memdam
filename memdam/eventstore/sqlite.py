@@ -66,8 +66,8 @@ class Eventstore(memdam.eventstore.api.Eventstore):
             conn = self._connect(table_name, read_only=True)
             namespace = table_name.replace("_", ".")
             cur = conn.cursor()
-            sql = "SELECT * FROM %s;" % (table_name)
-            execute_sql(cur, sql)
+            sql = "SELECT * FROM %s WHERE id__id = ?;" % (table_name)
+            execute_sql(cur, sql, (buffer(event_id.bytes),))
             names = [x[0] for x in cur.description]
             for row in cur.fetchall():
                 return _create_event_from_row(row, names, namespace, conn)
@@ -298,9 +298,8 @@ def _create_event_from_row(row, names, namespace, conn):
             elif field_type == memdam.common.event.FieldType.ID:
                 value = uuid.UUID(bytes=value)
         data[name] = value
-    sample_time = data['time__time']
-    del data['time__time']
-    return memdam.common.event.Event(sample_time, namespace, **data)
+    data['type__namespace'] = namespace
+    return memdam.common.event.Event(**data)
 
 EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)
 

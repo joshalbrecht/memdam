@@ -50,7 +50,7 @@ class Message(object):
                 if not value.startswith(self._server_url):
                     value = self._save_file(value)
             new_event_dict[key] = value
-        return memdam.common.event.Event.from_keys_dict(new_event_dict)
+        return memdam.common.event.Event(**new_event_dict)
 
     def send(self, recipients, smtp_address, username, password):
         """

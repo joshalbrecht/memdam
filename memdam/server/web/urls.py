@@ -1,4 +1,7 @@
 
+import traceback
+import sys
+
 import werkzeug.exceptions
 import flask
 
@@ -19,6 +22,8 @@ def handle_errors(err):
     """
     Generic JSON error handler. Adds a bit more color to what happened.
     """
+    exc_info = sys.exc_info()
+    trace_data = '\n'.join(traceback.format_exception(*exc_info))
     if isinstance(err, werkzeug.exceptions.HTTPException):
         response_data = dict(description=err.description)
         status_code = err.code
@@ -27,5 +32,6 @@ def handle_errors(err):
         status_code = 500
     response_data['code'] = status_code
     response_data['failed'] = True
+    response_data['trace'] = trace_data
     memdam.log.info("Request failed: " + str(response_data))
     return flask.make_response(flask.jsonify(response_data), status_code)

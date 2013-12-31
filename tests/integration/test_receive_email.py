@@ -25,8 +25,8 @@ def test_email_handling():
     time.sleep(5.0)
     #send the email
     events = [
-        memdam.common.event.Event(memdam.common.timeutils.now(), NAMESPACE, some__text="asdfsd", x__text="d"),
-        memdam.common.event.Event(memdam.common.timeutils.now(), NAMESPACE, some__text="tryr", x__text="g98f"),
+        memdam.common.event.new(NAMESPACE, some__text="asdfsd", x__text="d"),
+        memdam.common.event.new(NAMESPACE, some__text="tryr", x__text="g98f"),
     ]
     message = memdam.recorder.message.Message(DEVICE, events)
     #TODO: move these out to settings somewhere

@@ -7,9 +7,17 @@ import uuid
 import dateutil.parser
 from fn.monad import Option
 
+import memdam.common.timeutils
 import memdam.common.enum
 
 FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'RAW', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
+
+def new(namespace, **kwargs):
+    """Convenience function for the creation of events"""
+    kwargs['type__namespace'] = namespace
+    kwargs['time__time'] = memdam.common.timeutils.now()
+    kwargs['id__id'] = uuid.uuid4()
+    return Event(**kwargs)
 
 class Event(object):
     """
@@ -46,20 +54,14 @@ class Event(object):
     the string (ex: iso_3679)
     """
 
-    def __init__(self, sample_time, namespace, **kwargs):
+    def __init__(self, **kwargs):
         #TODO: events should be immutable and hashable
         #TODO: validate all keys (allowable characters, correct type, no overlap with top level, etc)
-        self.time__time = None
-        if 'id__id' not in kwargs:
-            kwargs['id__id'] = uuid.uuid4()
-        self.id__id = kwargs['id__id']
-        self.type__namespace = None
-        assert 'time__time' not in kwargs
-        assert 'type__namespace' not in kwargs
-        kwargs['time__time'] = sample_time
-        kwargs['type__namespace'] = namespace
+        self.id__id = None
+        self.time_time = None
         self.keys = set()
         for key, value in kwargs.items():
+            key = unicode(key)
             if value != None:
                 #validate that the argument names and types conform to the above specification.
                 field_type = Event.field_type(key)
@@ -69,6 +71,9 @@ class Event(object):
                 setattr(self, key, value)
                 if not isinstance(getattr(self, key), types.FunctionType):
                     self.keys.add(key)
+        assert hasattr(self, 'id__id')
+        assert hasattr(self, 'time__time')
+        assert hasattr(self, 'type__namespace')
 
     def get_field(self, key):
         """
@@ -101,6 +106,8 @@ class Event(object):
                 value = value.hex
             elif isinstance(value, buffer):
                 value = base64.b64encode(value)
+            if isinstance(value, basestring):
+                value = unicode(value)
             new_dict[key] = value
         return new_dict
 
@@ -180,18 +187,7 @@ class Event(object):
                 data[key] = uuid.UUID(data[key])
             elif field_type == FieldType.RAW:
                 data[key] = buffer(base64.b64decode(data[key]))
-        return Event.from_keys_dict(data)
-
-    @staticmethod
-    def from_keys_dict(data):
-        """
-        DESTROYS THE DICT THAT YOU PASS IN.
-        """
-        sample_time = data['time__time']
-        del data['time__time']
-        namespace = data['type__namespace']
-        del data['type__namespace']
-        return Event(sample_time, namespace, **data)
+        return Event(**data)
 
 def _make_hash_key(data):
     """recursively make a bunch of tuples out of a dict for stable hashing"""

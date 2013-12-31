@@ -9,8 +9,7 @@ import memdam.common.event
 
 def test_serialization():
     """Check that converting to and from a json dict gives the same object"""
-    event = memdam.common.event.Event(
-        memdam.common.timeutils.now(),
+    event = memdam.common.event.new(
         "some.data.type",
         cpu__number__percent=0.567,
         a__string__rfc123="Didnt+Look+Up+This+Data+Format",
@@ -33,7 +32,7 @@ def test_serialization():
 @nose.tools.raises(AssertionError)
 def test_max_long():
     """Should throw an AssertionError if a long attr is >= 2**64"""
-    memdam.common.event.Event(memdam.common.timeutils.now(), "some.data.type",
+    memdam.common.event.new("some.data.type",
                               temp__long=2**64)
 
 if __name__ == '__main__':

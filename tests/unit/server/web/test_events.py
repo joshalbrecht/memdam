@@ -11,7 +11,7 @@ import memdam.server.web.events
 
 import tests.unit.server.web
 
-event = memdam.common.event.Event(memdam.common.timeutils.now(), "whatever", cpu__number__percent=0.567)
+event = memdam.common.event.new("whatever", cpu__number__percent=0.567)
 event_json = json.dumps(event.to_json_dict())
 
 class CreateTest(tests.unit.server.web.FlaskResourceTestCase):

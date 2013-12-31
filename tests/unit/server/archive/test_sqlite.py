@@ -30,12 +30,10 @@ class SqliteBase(unittest.TestCase):
         unittest.TestCase.__init__(self, *args, **kwargs)
         self.blob_url = "https://127.0.0.1/testcasepath"
         self.archive = memdam.eventstore.sqlite.Eventstore(folder, self.blob_url)
-        self.simple_event = memdam.common.event.Event(
-            memdam.common.timeutils.now(),
+        self.simple_event = memdam.common.event.new(
             NAMESPACE,
             cpu__number__percent=0.567)
-        self.complex_event = memdam.common.event.Event(
-            memdam.common.timeutils.now(),
+        self.complex_event = memdam.common.event.new(
             NAMESPACE,
             cpu__number__percent=0.567,
             a__string__rfc123="Didnt+Look+Up+This+Data+Format",
@@ -78,9 +76,9 @@ class SqliteBase(unittest.TestCase):
         """Saving multiple Events should succeed"""
         sample_time = memdam.common.timeutils.now
         events = [
-            memdam.common.event.Event(sample_time(), NAMESPACE, cpu__number__percent=0.567),
-            memdam.common.event.Event(sample_time(), NAMESPACE, some__text="tryr", x__text="g98f"),
-            memdam.common.event.Event(sample_time(), NAMESPACE, some__text="asdfsd", x__text="d"),
+            memdam.common.event.new(NAMESPACE, cpu__number__percent=0.567),
+            memdam.common.event.new(NAMESPACE, some__text="tryr", x__text="g98f"),
+            memdam.common.event.new(NAMESPACE, some__text="asdfsd", x__text="d"),
         ]
         self.archive.save(events)
         returned_events = set(self.archive.find())
