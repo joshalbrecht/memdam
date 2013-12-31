@@ -3,7 +3,7 @@ import flask
 app = flask.Flask(__name__)
 
 app.config.update(dict(
-    DATABASE_FOLDER='/tmp/default.db',
+    DATABASE_FOLDER=':memory:',
     BLOB_URL='http://127.0.0.1/api/v1/blobs/',
     BLOBSTORE_FOLDER='/tmp',
     DEBUG=True,

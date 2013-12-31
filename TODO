@@ -5,9 +5,6 @@ fix memdam.log
     or call start logging thingy
     especially important to replace the call in urls (error handling)  ing)
 
-fix blob part of integration test
-pass some arg like "in memory db" to server during integration tests
-get client integration tests working again
 store files purely as blob id (no weird url nonsense, that way it never needs to be mangled and they are always nice and comparable)
 finish removal of SMTP and queuing complexity from client
 fix server integration and unit tests
