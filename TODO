@@ -25,6 +25,7 @@ replace smtp transport with http
             blobstore
             eventstore
             recorder (client) and archive (server)
+store files purely as blob id (no weird url nonsense, that way it never needs to be mangled and they are always nice and comparable)
 
 fix server integration and unit tests
 check test coverage

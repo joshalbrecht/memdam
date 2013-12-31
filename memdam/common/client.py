@@ -1,4 +1,5 @@
 
+import types
 import copy
 import uuid
 import base64
@@ -30,93 +31,47 @@ class MemdamClient(object):
             #wait a few minutes before we conclude that the server is not responding
             timeout=180.0
         )
-        self._file_upload_request_kwargs = copy.deepcopy(self._request_kwargs)
-        del self._file_upload_request_kwargs['headers']['Content-Type']
 
-    def load_event(self, event_id):
+    def request(self, method, url, **kwargs):
         """
-        Get all data for an Event from the server.
+        Make a request to the remote server. Merges any kwargs into our default kwargs, so that
+        headers, auth, etc are all taken care of, but can be overriden.
 
-        :param event_id: the unique identifier for the event
-        :type  event_id: uuid.UUID
-        :returns: the event with that unique identifier
-        :rtype: memdam.common.event.Event
-        :raises: memdam.common.client.ServerError
-        """
-        response = requests.get(self._server_url + "/events/" + event_id.hex, **self._request_kwargs)
-        _validate_response(response)
-        return memdam.common.event.Event.from_json_dict(response.json())
-
-    def save_event(self, event):
-        """
-        Set the data for a particular Event on the server.
-
-        :param event: the Event to save
-        :type  event: memdam.common.event.Event
-        :raises: memdam.common.client.ServerError
-        """
-        new_event = self._save_files_in_event(event)
-        event_json = json.dumps(new_event.to_json_dict())
-        response = requests.put(self._server_url + "/events/" + new_event.id__id.hex, data=event_json, **self._request_kwargs)
-        _validate_response(response)
-
-    def find_events(self, query):
-        """
-        Returns all Events that match the given Query
-
-        :param query: A set of filters to apply to all Events on the server
-        :type  query: memdam.common.query.Query
-        :returns: a list of Events defined by the filters in the query.
-            Note that this list may be gigantic.
-        :rtype: list(memdam.common.event.Event)
-        :raises: memdam.common.client.ServerError
-        """
-        query_json = json.dumps(query.to_json_dict())
-        response = requests.post(self._server_url + "/queries", data=query_json, **self._request_kwargs)
-        _validate_response(response)
-        event_json_list = response.json()
-        event_list = [memdam.common.event.Event.from_json_dict(x) for x in event_json_list]
-        return event_list
-
-    def _save_files_in_event(self, event):
-        """
-        Convert any Event into one that ONLY has files on the server where we are about to create
-        this Event by sending each of the files as blobs to the server.
-
-        :param event: the event in which to look for files
-        :type  event: memdam.common.event.Event
-        :returns: a new Event, with the same id, and all __file attributes pointing to paths on
-            self._server_url
-        :rtype: memdam.common.event.Event
-        """
-        new_event_dict = {}
-        for key in event.keys:
-            value = event.get_field(key)
-            if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.FILE:
-                if not value.startswith(self._server_url):
-                    value = self._save_file(value)
-            new_event_dict[key] = value
-        return memdam.common.event.Event.from_keys_dict(new_event_dict)
-
-    def _save_file(self, url):
-        """
-        Uploads a file from the provided path and returns the new path.
-
-        :param url: the path to the data. Should be a URL. For now only the file:// scheme is supported.
+        :param method: the name of the method (GET, POST, PUT, etc)
+        :type  method: string
+        :param url: path on the server to make the request to
         :type  url: string
-        :returns: the new path. Will be a URL.
-        :rtype: string
+        :param kwargs: see requests.post for full description of all keyword args
+        :type  kwargs: dict
+        :returns: the response from the server
+        :rtype: ??? (something from requests library)
         """
-        assert url.startswith("file://")
-        path = url[len("file://"):]
-        files = {'file': open(path, 'rb')}
-        blob_id = uuid.uuid4()
-        extension = path.split('.')[-1].lower()
-        assert len(extension) == 3, "files should end in a 3 letter extension, for sanity"
-        new_url = self._server_url + "/blobs/" + blob_id.hex + "." + extension
-        response = requests.put(new_url, files=files, **self._file_upload_request_kwargs)
+        merged_kwargs = _merge(kwargs, copy.deepcopy(self._request_kwargs))
+        new_url = self._server_url + url
+        request_method = getattr(requests, method.lower())
+        response = request_method(new_url, **merged_kwargs)
         _validate_response(response)
-        return new_url
+        return response
+
+#TODO: replace this with the python function that does it, I forgot the name
+def _merge(dest, source):
+    """
+    Recursively deep copy things from source to dest dicts.
+    The key will be deleted if mapped to None
+    """
+    for key in source:
+        if source[key] == None:
+            if key in dest:
+                del dest[key]
+            continue
+        if key in dest:
+            if isinstance(dest[key], types.DictType):
+                dest[key] = _merge(dest[key], source.get(key, {}))
+            else:
+                dest[key] = source[key]
+        else:
+            dest[key] = copy.deepcopy(source[key])
+    return dest
 
 def _validate_response(response):
     try:

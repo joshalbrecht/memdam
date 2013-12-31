@@ -29,7 +29,7 @@ class SqliteBase(unittest.TestCase):
     def __init__(self, folder, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
         self.blob_url = "https://127.0.0.1/testcasepath"
-        self.archive = memdam.eventstore.sqlite.SqliteArchive(folder, self.blob_url)
+        self.archive = memdam.eventstore.sqlite.Eventstore(folder, self.blob_url)
         self.simple_event = memdam.common.event.Event(
             memdam.common.timeutils.now(),
             NAMESPACE,
@@ -102,7 +102,7 @@ class LocalFileTest(SqliteBase):
     def setUp(self, ):
         self._temp_file = memdam.common.utils.make_temp_path()
         os.mkdir(self._temp_file)
-        self.archive = memdam.eventstore.sqlite.SqliteArchive(self._temp_file, self.blob_url)
+        self.archive = memdam.eventstore.sqlite.Eventstore(self._temp_file, self.blob_url)
 
     def tearDown(self):
         if os.path.exists(self._temp_file):

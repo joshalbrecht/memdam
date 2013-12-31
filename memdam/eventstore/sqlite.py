@@ -22,7 +22,7 @@ def execute_sql(cur, sql, args=()):
 #TODO: store UUIDs as two column integers for better space efficiency
 #TODO: validate the various bits of data--should not start or end with _, should not contain __, should only contain numbers and digits
 #also have to validate all of the things that we are inserting in a raw way
-class SqliteArchive(memdam.eventstore.api.EventstoreInterface):
+class Eventstore(memdam.eventstore.api.Eventstore):
     """
     An archive for all events that uses Sqlite as the backing store.
     Stores all tables in their own file for the following reasons:

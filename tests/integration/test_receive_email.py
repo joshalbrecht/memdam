@@ -34,7 +34,7 @@ def test_email_handling():
     password = 'foobar'
     message.send(["someone@domain.com"], SMTP_ADDRESS, username, password)
     #check that the events were actually inserted
-    archive = memdam.eventstore.sqlite.SqliteArchive(TEMP_DIR)
+    archive = memdam.eventstore.sqlite.Eventstore(TEMP_DIR)
     assert len(archive.find()) == 2
     process.terminate()
 
@@ -44,7 +44,7 @@ def run_server():
     if os.path.exists(TEMP_DIR):
         shutil.rmtree(TEMP_DIR)
     os.mkdir(TEMP_DIR)
-    archive = memdam.eventstore.sqlite.SqliteArchive(TEMP_DIR)
+    archive = memdam.eventstore.sqlite.Eventstore(TEMP_DIR)
     memdam.server.email_data_handler.EmailDataHandler(SMTP_ADDRESS, archive)
     asyncore.loop()
 

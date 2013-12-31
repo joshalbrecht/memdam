@@ -7,6 +7,7 @@ import memdam.common.timeutils
 import memdam.common.client
 import memdam.server.web.urls
 
+#TODO: refactor to use new https eventstore and blobstore with client (or something higher level?)
 def test_save_and_get_event_with_file():
     test_data = 'fw98n59askyuesfh.jzlsrkyg'
     server = start_server()

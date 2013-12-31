@@ -9,7 +9,7 @@ from memdam.server.web import app
 def get_archive():
     """
     :returns: a new (or cached) archive
-    :rtype: memdam.eventstore.api.EventstoreInterface
+    :rtype: memdam.eventstore.api.Eventstore
     """
     archive = getattr(flask.g, '_archive', None)
     if archive is None:
@@ -17,7 +17,7 @@ def get_archive():
         blob_url = app.config['BLOB_URL']
         if not os.path.exists(db_file):
             os.makedirs(db_file)
-        archive = flask.g._archive = memdam.eventstore.sqlite.SqliteArchive(db_file, blob_url)
+        archive = flask.g._archive = memdam.eventstore.sqlite.Eventstore(db_file, blob_url)
     return archive
 
 def get_blobstore():

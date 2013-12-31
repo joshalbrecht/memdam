@@ -2,7 +2,9 @@
 import shutil
 import os
 
-class Blobstore(object):
+import memdam.blobstore.api
+
+class Blobstore(memdam.blobstore.api.Blobstore):
     """
     Just a simple place to dump files. Uses a particular folder on local storage.
     """
@@ -11,32 +13,11 @@ class Blobstore(object):
         self._folder = folder
 
     def set_data_from_file(self, blob_id, extension, input_path):
-        """
-        Save a file based on the raw data.
-
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
-        :param output_path: path with the data that should be written
-        :type  output_path: string
-        """
         path = self._get_path(blob_id, extension)
         _make_folders(path)
         shutil.copyfile(input_path, path)
 
     def get_data_to_file(self, blob_id, extension, output_path):
-        """
-        Saves the raw data to a file of your choosing. You are responsible for making sure it gets
-        deleted when you're done with it.
-
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
-        :param output_path: where the data should be written
-        :type  output_path: string
-        """
         path = self._get_path(blob_id, extension)
         shutil.copyfile(path, output_path)
 
