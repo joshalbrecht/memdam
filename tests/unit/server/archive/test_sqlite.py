@@ -103,6 +103,12 @@ class SqliteBase(unittest.TestCase):
         nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('key__string', True)]))[0], c)
         nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('key__string', False)]))[0], b)
 
+    def test_delete(self):
+        self.archive.save([self.simple_event])
+        self.archive.delete(self.simple_event.id__id)
+        returned_events = set(self.archive.find(memdam.common.query.Query()))
+        nose.tools.eq_(len(returned_events), 0)
+
     #TODO: decide whether attributes with the same name and different types are allowed, and make a test
     #TODO: decide whether these query objects make any sense, or if we should just use raw sql, or some other approach...
     #TODO (far future) test query filters
@@ -127,7 +133,7 @@ class LocalFileTest(SqliteBase):
             shutil.rmtree(self._temp_file)
 
 if __name__ == '__main__':
-    tester = MemoryTest()
+    tester = LocalFileTest()
     tester.setUp()
-    tester.test_find_query_limit()
+    tester.test_delete()
     tester.tearDown()

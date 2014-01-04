@@ -10,7 +10,7 @@ import memdam.server.web.auth
 
 blueprint = flask.Blueprint('events', __name__)
 
-@blueprint.route('/<unsafe_event_id>', methods = ['PUT', 'GET'])
+@blueprint.route('/<unsafe_event_id>', methods = ['PUT', 'GET', 'DELETE'])
 @memdam.server.web.auth.requires_auth
 def events(unsafe_event_id):
     """
@@ -23,6 +23,9 @@ def events(unsafe_event_id):
         event = memdam.server.web.utils.get_archive().get(event_id)
         event_json = event.to_json_dict()
         return flask.jsonify(event_json)
+    elif flask.request.method == 'DELETE':
+        memdam.server.web.utils.get_archive().delete(event_id)
+        return '', 204
     else:
         if not flask.request.json:
             raise memdam.server.web.errors.BadRequest("Must send JSON for events.")

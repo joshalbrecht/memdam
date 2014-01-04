@@ -22,8 +22,17 @@ class Eventstore(object):
         :raises: Exception if there is no event with that id.
         """
 
-    def find(self, query=None):
+    def find(self, query):
         """
         :returns: all events that match the given query.
         :rtype: list(memdam.common.event.Event)
+        """
+
+    def delete(self, event_id):
+        """
+        Ensures that the given event id is deleted.
+        Idempotent.
+
+        :param event_id: the event id to be deleted.
+        :type  event_id: uuid.UUID
         """

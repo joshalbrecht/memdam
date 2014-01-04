@@ -5,10 +5,7 @@ fix memdam.log
     or call start logging thingy
     especially important to replace the call in urls (error handling)  ing)
 
-add required support for queries (order by, limit)
-    postpone filters!
-    postpone web impl (raise notimplemented)
-add test
+
 add delete method to eventstore
 add test
 add delete method to blobstore

@@ -68,12 +68,21 @@ class Eventstore(memdam.eventstore.api.Eventstore):
                 return _create_event_from_row(row, names, namespace, conn)
         raise Exception("event with id %s not found" % (event_id))
 
-    def find(self, query=None):
+    def find(self, query):
         #TODO: filter down earlier based on namespace in query
         events = []
         for table_name in self._all_table_names():
             events += self._find_matching_events_in_table(table_name, query)
         return events
+
+    def delete(self, event_id):
+        for table_name in self._all_table_names():
+            conn = self._connect(table_name, read_only=True)
+            namespace = table_name.replace("_", ".")
+            cur = conn.cursor()
+            sql = "DELETE FROM %s WHERE id__id = ?;" % (table_name)
+            execute_sql(cur, sql, (buffer(event_id.bytes),))
+            conn.commit()
 
     def _find_matching_events_in_table(self, table_name, query):
         conn = self._connect(table_name, read_only=True)
