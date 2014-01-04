@@ -6,6 +6,7 @@ import asyncore
 import multiprocessing
 
 import memdam.common.timeutils
+import memdam.common.query
 import memdam.recorder.message
 import memdam.recorder.main
 import memdam.eventstore.sqlite
@@ -46,7 +47,7 @@ def test_collector_and_server():
     collector_process.terminate()
     #and check that some events were recorded
     archive = memdam.eventstore.sqlite.Eventstore(TEMP_DIR)
-    assert len(archive.find()) > 0
+    assert len(archive.find(memdam.common.query.Query())) > 0
 
 if __name__ == '__main__':
     test_collector_and_server()

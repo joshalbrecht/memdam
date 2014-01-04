@@ -10,6 +10,7 @@ import memdam
 import memdam.common.utils
 import memdam.common.timeutils
 import memdam.common.event
+import memdam.common.query
 import memdam.eventstore.sqlite
 
 NAMESPACE = "somedatatype"
@@ -29,7 +30,7 @@ class SqliteBase(unittest.TestCase):
     def __init__(self, folder, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
         self.blob_url = "https://127.0.0.1/testcasepath"
-        self.archive = memdam.eventstore.sqlite.Eventstore(folder, self.blob_url)
+        self.archive = memdam.eventstore.sqlite.Eventstore(folder)
         self.simple_event = memdam.common.event.new(
             NAMESPACE,
             cpu__number__percent=0.567)
@@ -63,29 +64,48 @@ class SqliteBase(unittest.TestCase):
         self.archive.save([self.complex_event])
         self.archive.save([self.complex_event])
         self.archive.save([self.simple_event])
-        returned_events = set(self.archive.find())
+        returned_events = set(self.archive.find(memdam.common.query.Query()))
         nose.tools.eq_(returned_events, set([self.complex_event, self.simple_event]))
 
     def test_save_all_data_types(self):
         """Saving and loading an event should work with all data types"""
         self.archive.save([self.complex_event])
-        returned_events = set(self.archive.find())
+        returned_events = set(self.archive.find(memdam.common.query.Query()))
         nose.tools.eq_(returned_events, set([self.complex_event]))
 
     def test_save_multiple_events_at_once(self):
         """Saving multiple Events should succeed"""
-        sample_time = memdam.common.timeutils.now
         events = [
             memdam.common.event.new(NAMESPACE, cpu__number__percent=0.567),
             memdam.common.event.new(NAMESPACE, some__text="tryr", x__text="g98f"),
             memdam.common.event.new(NAMESPACE, some__text="asdfsd", x__text="d"),
         ]
         self.archive.save(events)
-        returned_events = set(self.archive.find())
+        returned_events = set(self.archive.find(memdam.common.query.Query()))
         nose.tools.eq_(returned_events, set(events))
 
+    def test_find_query_limit(self):
+        """Queries should respect the limit parameter"""
+        events = [self.simple_event, self.complex_event]
+        self.archive.save(events)
+        returned_events = set(self.archive.find(memdam.common.query.Query(limit=1)))
+        nose.tools.eq_(len(returned_events), 1)
+
+    def test_find_query_order(self):
+        """Queries should respect the order parameter"""
+        a = memdam.common.event.new(NAMESPACE, cpu__number=0.1, key__string="aaa")
+        b = memdam.common.event.new(NAMESPACE, cpu__number=0.2, key__string="bbb")
+        c = memdam.common.event.new(NAMESPACE, cpu__number=0.3)
+        events = [a, b, c]
+        self.archive.save(events)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('cpu__number', True)]))[0], a)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('cpu__number', False)]))[0], c)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('key__string', True)]))[0], c)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('key__string', False)]))[0], b)
+
     #TODO: decide whether attributes with the same name and different types are allowed, and make a test
-    #TODO (far future) test queries
+    #TODO: decide whether these query objects make any sense, or if we should just use raw sql, or some other approach...
+    #TODO (far future) test query filters
 
 class MemoryTest(SqliteBase):
     """Run all sqlite archive tests with the in-memory database"""
@@ -100,7 +120,7 @@ class LocalFileTest(SqliteBase):
     def setUp(self, ):
         self._temp_file = memdam.common.utils.make_temp_path()
         os.mkdir(self._temp_file)
-        self.archive = memdam.eventstore.sqlite.Eventstore(self._temp_file, self.blob_url)
+        self.archive = memdam.eventstore.sqlite.Eventstore(self._temp_file)
 
     def tearDown(self):
         if os.path.exists(self._temp_file):
@@ -109,5 +129,5 @@ class LocalFileTest(SqliteBase):
 if __name__ == '__main__':
     tester = MemoryTest()
     tester.setUp()
-    tester.test_save_multiple_times()
+    tester.test_find_query_limit()
     tester.tearDown()

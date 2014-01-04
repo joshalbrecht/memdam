@@ -6,6 +6,7 @@ import asyncore
 import multiprocessing
 
 import memdam.common.timeutils
+import memdam.common.query
 import memdam.recorder.message
 import memdam.eventstore.sqlite
 import memdam.server.email_data_handler
@@ -35,7 +36,7 @@ def test_email_handling():
     message.send(["someone@domain.com"], SMTP_ADDRESS, username, password)
     #check that the events were actually inserted
     archive = memdam.eventstore.sqlite.Eventstore(TEMP_DIR)
-    assert len(archive.find()) == 2
+    assert len(archive.find(memdam.common.query.Query())) == 2
     process.terminate()
 
 def run_server():

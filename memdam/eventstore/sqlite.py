@@ -19,7 +19,6 @@ def execute_sql(cur, sql, args=()):
     memdam.log.trace("Executing: %s    ARGS=%s" % (sql, args))
     return cur.execute(sql, args)
 
-#TODO: store UUIDs as two column integers for better space efficiency
 #TODO: validate the various bits of data--should not start or end with _, should not contain __, should only contain numbers and digits
 #also have to validate all of the things that we are inserting in a raw way
 class Eventstore(memdam.eventstore.api.Eventstore):
@@ -77,18 +76,39 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         return events
 
     def _find_matching_events_in_table(self, table_name, query):
-        #TODO: actually respect query :(
         conn = self._connect(table_name, read_only=True)
         namespace = table_name.replace("_", ".")
         cur = conn.cursor()
         args = ()
-        sql = "SELECT * FROM %s;" % (table_name)
+        sql = "SELECT * FROM %s" % (table_name)
+        if query.filters:
+            filter_string, new_args = self._get_filter_string(query.filters)
+            args = args + new_args
+            sql += " WHERE " + filter_string
+        if query.order:
+            order_string = self._get_order_string(query.order)
+            sql += " ORDER BY " + order_string
+        if query.limit:
+            sql += " LIMIT " + str(long(query.limit))
+        sql += ';'
         execute_sql(cur, sql, args)
         events = []
         names = list(map(lambda x: x[0], cur.description))
         for row in cur.fetchall():
             events.append(_create_event_from_row(row, names, namespace, conn))
         return events
+
+    def _get_order_string(self, order):
+        sql_order_elems = []
+        for elem in order:
+            order_type = 'ASC'
+            if elem[1] == False:
+                order_type = 'DESC'
+            safe_column_name = elem[0].lower()
+            assert re.compile("^[a-z_]+$").match(safe_column_name), "Bad column name: " + safe_column_name
+            assert memdam.common.event.Event.field_type(safe_column_name) != memdam.common.event.FieldType.TEXT, "text keys are currently unsupported for ordering. Doesn't make a lot of sense."
+            sql_order_elems.append("%s %s" % (safe_column_name, order_type))
+        return ", ".join(sql_order_elems)
 
     def _all_table_names(self):
         """

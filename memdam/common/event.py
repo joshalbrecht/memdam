@@ -80,6 +80,7 @@ class Event(object):
                     value = unicode(value)
                 assert key == key.lower()
                 setattr(self, key, value)
+                self.keys.add(key)
         assert hasattr(self, 'id__id')
         assert hasattr(self, 'time__time')
         assert hasattr(self, 'type__namespace')
