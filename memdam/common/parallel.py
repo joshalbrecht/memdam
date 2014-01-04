@@ -166,3 +166,4 @@ def _load_from_queue(queue, reinsert_poison_pills=True, ignore_queue_closed=True
             raise
         except EOFError:
             return records
+

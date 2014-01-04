@@ -74,7 +74,6 @@ class Collector(object):
                 memdam.common.error.report(e)
         self.post_collect()
 
-#TODO: in event, note that all file string must be of the form (url_prefix/uuid.ext) so that files don't get duplicated into different uuids when being copied between blobstores
 def _save_files_in_event(event, blobstore):
     """
     Convert any Event into one that ONLY has files on the server where we are about to create

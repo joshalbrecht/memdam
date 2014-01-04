@@ -45,7 +45,7 @@ def _check_logging(log_name):
         process.join()
         nose.tools.eq_(process.exitcode, 0)
     nose.tools.eq_(len(message_counter.messages), 5+6+8)
-    memdam.log.handlers[0]._shutdown()
+    memdam.shutdown_log()
 
 def _print_some_statements(num):
     """Print some statements and exit"""

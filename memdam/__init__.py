@@ -71,3 +71,7 @@ config = Config()
 def flush_logs():
     """Simply write all of the log events out of the queue, for debugging"""
     log.handlers[0].flush()
+
+def shutdown_log():
+    """Should be the very last statement in a program. Without this there are warnings about unclean debug client shutdowns."""
+    log.handlers[0]._shutdown()
