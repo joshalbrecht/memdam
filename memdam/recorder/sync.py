@@ -2,23 +2,23 @@
 import memdam
 import memdam.recorder.workmanager
 
-def _work_generator(shutdown_queue, work_queue, source=None, dest=None):
-    try:
-        memdam.log.info((shutdown_queue, work_queue, source, dest))
-    except Exception, e:
-        x = str(e)
-        import traceback
-        traceback.print_exc(e)
-        y = 4
+class EventstoreSyncWorker(memdam.recorder.workmanager.Worker):
+    def __init__(self, source, dest):
+        memdam.recorder.workmanager.Worker.__init__(self)
+        self._source = source
+        self._dest = dest
 
-def _work_consumer(work_queue, source=None, dest=None):
-    try:
-        memdam.log.info((work_queue, source, dest))
-    except Exception, e:
-        x = str(e)
-        import traceback
-        traceback.print_exc(e)
-        y = 4
+    def _process(self, work_id):
+        pass
+
+class EventstoreSyncManager(memdam.recorder.workmanager.Manager):
+    def __init__(self, source, dest):
+        memdam.recorder.workmanager.Manager.__init__(self)
+        self._source = source
+        self._dest = dest
+
+    def _generate_work_ids(self):
+        return []
 
 class EventstoreSynchronizer(memdam.recorder.workmanager.PollingWorkManager):
     """
@@ -26,4 +26,9 @@ class EventstoreSynchronizer(memdam.recorder.workmanager.PollingWorkManager):
     """
 
     def __init__(self, source, dest):
-        memdam.recorder.workmanager.PollingWorkManager.__init__(self, "EventstoreSynchronizer", _work_generator, _work_consumer, kwargs=dict(source=source, dest=dest))
+        memdam.recorder.workmanager.PollingWorkManager.__init__(self, EventstoreSyncManager(source, dest), self._worker_generator(source, dest))
+
+    def _worker_generator(self, source, dest):
+        def gen():
+            return EventstoreSyncWorker(source, dest)
+        return gen
