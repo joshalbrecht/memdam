@@ -58,7 +58,6 @@ def test_sync():
     #check that the data in the dest stores is correct
     nose.tools.eq_(set(event_dest.find(memdam.common.query.Query())), set(TestCollector.events))
     nose.tools.eq_(_count_blobs(blob_dest._folder), 2)
-    memdam.shutdown_log()
 
 def _count_blobs(blobstore_folder):
     """:returns: the number of blob files in the folder"""
@@ -69,3 +68,4 @@ def _count_blobs(blobstore_folder):
 
 if __name__ == '__main__':
     test_sync()
+    memdam.shutdown_log()

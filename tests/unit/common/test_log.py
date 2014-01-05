@@ -44,8 +44,8 @@ def _check_logging(log_name):
     for process in processes:
         process.join()
         nose.tools.eq_(process.exitcode, 0)
+    time.sleep(1.0) #must wait for the logging thread to catch up
     nose.tools.eq_(len(message_counter.messages), 5+6+8)
-    #memdam.shutdown_log()
 
 def _print_some_statements(num):
     """Print some statements and exit"""
@@ -67,5 +67,5 @@ class DebugProcessesAsThreads(object):
         memdam.config.debug_processes = False
 
 if __name__ == '__main__':
-    test_multiprocess_logging()
     test_multithreaded_logging()
+    memdam.shutdown_log()
