@@ -27,48 +27,48 @@
         }
     },
     "patternProperties": {
-        "^([a-z]+_)*[a-z]+__number(__([a-z]+_)*[a-z]+){0,1}$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__number(__[a-z]([a-z0-9]+_)*[a-z0-9]+){0,1}$": {
             "type": "integer",
             "description": "A numeric property. The second capture group (if present) should describe the units (example: 'newtons' or 'metric_tons_usd_per_degrees_celsius_miles'"
         },
-        "^([a-z]+_)*[a-z]+__string(__([a-z]+_)*[a-z]+){0,1}$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__string(__[a-z]([a-z0-9]+_)*[a-z0-9]+){0,1}$": {
             "type": "string",
             "description": "An unknown property, encoded as a string (UTF8). The second capture group (if present) should describe the format or meaning of the string (exampe: 'gps_coordinates' or 'iso_6709'). Because there is no format, is not indexed."
         },
-        "^([a-z]+_)*[a-z]+__raw(__([a-z]+_)*[a-z]+){0,1}$$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__raw(__[a-z]([a-z0-9]+_)*[a-z0-9]+){0,1}$$": {
             "type": "string",
             "description": "A blob. Use for storing small binary information that would be silly to make a separate file for. Optionally include the type information in the second capture group."
         },
-        "^([a-z]+_)*[a-z]+__text$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__text$": {
             "type": "string",
             "description": "A property with unstructured text. Will be indexed for full text (keyword matching, lowercased, normalized) search."
         },
-        "^([a-z]+_)*[a-z]+__enum(__([a-z]+_)*[a-z]+){0,1}$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__enum(__[a-z]([a-z0-9]+_)*[a-z0-9]+){0,1}$": {
             "type": "string",
             "description": "A property with a fixed set of values (encoded here as strings). The second capture group (if present) should uniquely identify this enum, possibly across many different event types. The existing data should be queried to get possible values for the enum when asking for human input, but should never be used to limit additional new entries."
         },
-        "^([a-z]+_)*[a-z]+__bool$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__bool$": {
             "type": "boolean",
             "description": "A property that is either true or false."
         },
-        "^([a-z]+_)*[a-z]+__namespace$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__namespace$": {
             "$ref": "#/definitions/namespace",
             "description": "A package name (like java package names, but no numbers or underscores.)"
         },
-        "^([a-z]+_)*[a-z]+__time$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__time$": {
             "$ref": "#/definitions/datetime",
             "description": "A property with time values."
         },
-        "^([a-z]+_)*[a-z]+__id$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__id$": {
             "$ref": "#/definitions/uuid",
             "description": "A property with unique id values."
         },
-        "^([a-z]+_)*[a-z]+__long$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__long$": {
             "type": "string",
             "pattern": "^[\-\+]{0,1}[0-9]+$",
             "description": "A property that requires a huge integer value (beyond 2^53). Encoded as a string to prevent javascript and json from dying."
         },
-        "^([a-z]+_)*[a-z]+__file$": {
+        "^[a-z]([a-z0-9]+_)*[a-z0-9]+__file$": {
             "type": "object",
             "oneOf": [
                 { "$ref": "#/definitions/fileData" },
