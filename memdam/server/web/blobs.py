@@ -7,6 +7,7 @@ import base64
 import flask
 
 import memdam.common.utils
+import memdam.common.validation
 import memdam.server.web.errors
 import memdam.server.web.utils
 import memdam.server.web.auth
@@ -55,7 +56,7 @@ def validate_uuid(unsafe_blob_id):
     :rtype: uuid.UUID
     :raises: memdam.server.web.errors.BadRequest (if the input is not valid)
     """
-    if not re.compile(r"^[0-9a-fA-F]+$").match(unsafe_blob_id):
+    if not re.compile("^" + memdam.common.validation.UUID_HEX_PATTERN + "$", re.IGNORECASE).match(unsafe_blob_id):
         raise memdam.server.web.errors.BadRequest("blob id should consist of only hex characters")
     if len(unsafe_blob_id) != 32:
         raise memdam.server.web.errors.BadRequest("blob id should have exactly 32 characters")
@@ -70,7 +71,7 @@ def validate_extension(unsafe_extension):
     :rtype: string
     :raises: memdam.server.web.errors.BadRequest (if the input is not valid)
     """
-    if not re.compile(r"^[0-9a-zA-Z]+$").match(unsafe_extension):
+    if not re.compile("^" + memdam.common.validation.EXTENSION_PATTERN + "$", re.IGNORECASE).match(unsafe_extension):
         raise memdam.server.web.errors.BadRequest("extension should consist of only characters a-z and 0-9")
     return unsafe_extension.lower()
 

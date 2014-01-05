@@ -1,11 +1,10 @@
 
-import shutil
-import tempfile
 import os
-import re
 import uuid
 
 import memdam.common.error
+import memdam.common.field
+import memdam.common.validation
 
 class Collector(object):
     """
@@ -83,11 +82,10 @@ class Collector(object):
         self.post_collect()
 
     def _save_file(self, file_path, blobstore, consume_file=False, generate_id=True):
-        uuid_name_regex = re.compile(r"^[0-9a-f]{32}\.[a-z0-9]+$")
         folder, file_name = os.path.split(file_path)
         if generate_id == False:
-            assert uuid_name_regex.match(file_name), "file name must be a hex encoded uuid with extension"
-        if (generate_id == None and uuid_name_regex.match(file_name)) or generate_id == False:
+            assert memdam.common.validation.BLOB_FILE_NAME_REGEX.match(file_name), "file name must be a hex encoded uuid with extension"
+        if (generate_id == None and memdam.common.validation.BLOB_FILE_NAME_REGEX.match(file_name)) or generate_id == False:
             blob_id = uuid.UUID('.'.join(file_name.split('.')[:-1]))
         else:
             blob_id = uuid.uuid4()
@@ -111,7 +109,7 @@ def _save_files_in_event(event, blobstore):
     new_event_dict = {}
     for key in event.keys:
         value = event.get_field(key)
-        if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.FILE:
+        if memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.FILE:
             if not value.startswith(blobstore.get_url_prefix()):
                 blob_id, extension = event.get_file_data(key)
                 assert value.startswith("file://"), "Can only work with events based on local files right now"

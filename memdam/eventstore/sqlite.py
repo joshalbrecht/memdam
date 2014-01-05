@@ -9,10 +9,9 @@ import itertools
 import pytz
 
 import memdam
+import memdam.common.field
 import memdam.common.event
 import memdam.eventstore.api
-
-#IndexType = memdam.common.enum.enum('FTS', 'ASC', 'DESC')
 
 #Just for debugging
 def execute_sql(cur, sql, args=()):
@@ -90,7 +89,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
                     name = names[i]
                     if name == '_id':
                         continue
-                    if memdam.common.event.Event.field_type(name) == memdam.common.event.FieldType.TEXT:
+                    if memdam.common.event.Event.field_type(name) == memdam.common.field.FieldType.TEXT:
                         execute_sql(cur, "DELETE FROM %s__%s__docs WHERE docid = ?;" % (table_name, name), (rowid))
                 execute_sql(cur, "DELETE FROM %s WHERE _id = %s" % (table_name, rowid), ())
             conn.commit()
@@ -125,8 +124,8 @@ class Eventstore(memdam.eventstore.api.Eventstore):
             if elem[1] == False:
                 order_type = 'DESC'
             safe_column_name = elem[0].lower()
-            assert re.compile("^[a-z_]+$").match(safe_column_name), "Bad column name: " + safe_column_name
-            assert memdam.common.event.Event.field_type(safe_column_name) != memdam.common.event.FieldType.TEXT, "text keys are currently unsupported for ordering. Doesn't make a lot of sense."
+            assert SqliteColumn.SQL_NAME_REGEX.match(safe_column_name), "Invalid name for column: %s" % (safe_column_name)
+            assert memdam.common.event.Event.field_type(safe_column_name) != memdam.common.field.FieldType.TEXT, "text keys are currently unsupported for ordering. Doesn't make a lot of sense."
             sql_order_elems.append("%s %s" % (safe_column_name, order_type))
         return ", ".join(sql_order_elems)
 
@@ -179,7 +178,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         memdam.log.trace("Saving %s events to %s" % (len(events), table_name))
         if len(events) <= 0:
             return
-        assert re.compile(r"[a-z][a-z_]*").match(table_name), "Should only use a-z and '_' in namespaces"
+        assert SqliteColumn.SQL_NAME_REGEX.match(table_name), "Invalid name for table: %s" % (table_name)
         conn = self._connect(table_name, read_only=False)
         cur = conn.cursor()
         cur.execute("BEGIN EXCLUSIVE")
@@ -272,7 +271,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
 
         #need to insert text documents into separate docs tables
         for key in key_names:
-            if memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
+            if memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.TEXT:
                 sql = "INSERT INTO %s__%s__docs (docid,data) VALUES (?,?);" % (table_name, key)
                 values = [(next_row_id + i, getattr(events[i], key, None)) for i in range(0, len(events))]
                 memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
@@ -297,10 +296,10 @@ def make_value_tuple(event, key_names, event_id):
             if isinstance(value, datetime.datetime):
                 value = convert_time_to_long(value)
             #convert text tuple entries into references to the actual text data
-            elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.TEXT:
+            elif memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.TEXT:
                 value = event_id
             #convert UUIDs to byte representation
-            elif memdam.common.event.Event.field_type(key) == memdam.common.event.FieldType.ID:
+            elif memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.ID:
                 value = buffer(value.bytes)
         values.append(value)
     return values
@@ -324,13 +323,13 @@ def _create_event_from_row(row, names, namespace, conn):
         value = row[i]
         if value != None:
             field_type = memdam.common.event.Event.field_type(name)
-            if field_type == memdam.common.event.FieldType.TIME:
+            if field_type == memdam.common.field.FieldType.TIME:
                 value = convert_long_to_time(value)
-            elif field_type == memdam.common.event.FieldType.TEXT:
+            elif field_type == memdam.common.field.FieldType.TEXT:
                 cur = conn.cursor()
                 execute_sql(cur, "SELECT data FROM %s__%s__docs WHERE docid = '%s';" % (table_name, name, value))
                 value = cur.fetchall()[0][0]
-            elif field_type == memdam.common.event.FieldType.ID:
+            elif field_type == memdam.common.field.FieldType.ID:
                 value = uuid.UUID(bytes=value)
             data[name] = value
     data['type__namespace'] = namespace
@@ -346,40 +345,43 @@ class SqliteColumn(object):
     :attr name: the name of the column. No type, no index, none of that nonsense.
     :type name: string
     :attr data_type: the type of data
-    :type data_type: memdam.common.event.FieldType
+    :type data_type: memdam.common.field.FieldType
     :attr table_name: the name of the table. The namespace for the events
     :type table_name: string
     """
 
+    SQL_NAME_REGEX = re.compile(r"[a-z][a-z0-9_]*")
+
     data_type_to_sql_type = {
-        memdam.common.event.FieldType.NUMBER: 'FLOAT',
-        memdam.common.event.FieldType.STRING: 'TEXT',
+        memdam.common.field.FieldType.NUMBER: 'FLOAT',
+        memdam.common.field.FieldType.STRING: 'TEXT',
         #this might seems strange, but it's because we store an index to a document in another table
-        memdam.common.event.FieldType.TEXT: 'INTEGER',
-        memdam.common.event.FieldType.ENUM: 'TEXT',
-        memdam.common.event.FieldType.RAW: 'BLOB',
-        memdam.common.event.FieldType.BOOL: 'BOOL',
-        memdam.common.event.FieldType.TIME: 'INTEGER',
-        memdam.common.event.FieldType.ID: 'TEXT',
-        memdam.common.event.FieldType.LONG: 'INTEGER',
-        memdam.common.event.FieldType.FILE: 'TEXT',
-        memdam.common.event.FieldType.NAMESPACE: 'TEXT',
+        memdam.common.field.FieldType.TEXT: 'INTEGER',
+        memdam.common.field.FieldType.ENUM: 'TEXT',
+        memdam.common.field.FieldType.RAW: 'BLOB',
+        memdam.common.field.FieldType.BOOL: 'BOOL',
+        memdam.common.field.FieldType.TIME: 'INTEGER',
+        memdam.common.field.FieldType.ID: 'TEXT',
+        memdam.common.field.FieldType.LONG: 'INTEGER',
+        memdam.common.field.FieldType.FILE: 'TEXT',
+        memdam.common.field.FieldType.NAMESPACE: 'TEXT',
     }
 
     def __init__(self, column_name, table_name):
         self.column_name = column_name
         name = memdam.common.event.Event.raw_name(column_name)
-        assert re.compile(r"[a-z][a-z_]*").match(name.lower()), "Should only use a-z and '_' in namespaces"
-        self.name = name.lower()
+        assert SqliteColumn.SQL_NAME_REGEX.match(name), "Invalid name for column: %s" % (name)
+        self.name = name
         self.data_type = memdam.common.event.Event.field_type(column_name)
-        self.table_name = table_name.lower()
+        assert SqliteColumn.SQL_NAME_REGEX.match(name), "Invalid name for table: %s" % (table_name)
+        self.table_name = table_name
 
     @property
     def is_text(self):
         """
         :returns: True iff this is a text "column", which must be handled specially
         """
-        return self.data_type == memdam.common.event.FieldType.TEXT
+        return self.data_type == memdam.common.field.FieldType.TEXT
 
     def create(self, cur):
         """
@@ -394,7 +396,7 @@ class SqliteColumn(object):
             execute_sql(cur, "CREATE INDEX %s ON %s (%s %s);" % (index_name, self.table_name, self.column_name, self.sql_index))
 
     def __repr__(self):
-        data_type_name = memdam.common.event.FieldType.names[self.data_type]
+        data_type_name = memdam.common.field.FieldType.names[self.data_type]
         return "SqliteColumn(%s/%s/%s)" % (self.table_name, self.name, data_type_name)
 
     def __str__(self):
@@ -416,7 +418,7 @@ class SqliteColumn(object):
         :returns: the sqlite type corresponding to our index type
         :rtype: string
         """
-        if self.data_type == memdam.common.event.FieldType.RAW:
+        if self.data_type == memdam.common.field.FieldType.RAW:
             return None
         return 'ASC'
 

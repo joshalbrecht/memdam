@@ -9,12 +9,10 @@ import dateutil.parser
 from fn.monad import Option
 
 import memdam.common.timeutils
-import memdam.common.enum
-
-FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'RAW', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
+import memdam.common.field
+import memdam.common.validation
 
 SUPPORTED_URLS = ('file://', 'http://', 'https://')
-FILE_REGEX = re.compile(r'^[a-f0-9]{32}\.[a-z0-9_]+$')
 
 def new(namespace, **kwargs):
     """Convenience function for the creation of events"""
@@ -48,7 +46,7 @@ class Event(object):
 
     The `type` group refers to a fixed set of acceptable data types.
     All attributes must have one defined.
-    See `FieldType` above for the list of acceptable values (will be lowercased here).
+    See `memdam.common.field.FieldType` above for the list of acceptable values (will be lowercased here).
     See the json event-schema for further details on each type.
 
     The `secondary_type` is optional, and will only ever be defined for NUMBER or STRING types.
@@ -68,15 +66,15 @@ class Event(object):
             key = unicode(key)
             assert value != None, "Can not set attributes to None. If you want to, simply leave it off."
             #validate that the argument names and types conform to the above specification.
-            assert re.compile("^[a-z_]+$").match(key), "Field %s contains something besides a-z_" % (key)
+            assert memdam.common.validation.EVENT_FIELD_REGEX.match(key), "Field %s contains something besides a-z_" % (key)
             field_type = Event.field_type(key)
-            if field_type == FieldType.LONG:
+            if field_type == memdam.common.field.FieldType.LONG:
                 assert value < 18446744073709551616L
-            if field_type == FieldType.FILE:
+            if field_type == memdam.common.field.FieldType.FILE:
                 lowered = value.lower()
                 assert len([True for url_type in SUPPORTED_URLS if lowered.startswith(url_type)]) > 0, "All file variables must use one of the following url schemes: " + SUPPORTED_URLS
                 assert '/' in lowered, "must use absolute file urls for file type variables"
-                assert FILE_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
+                assert memdam.common.validation.BLOB_FILE_NAME_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
             if isinstance(value, basestring):
                 value = unicode(value)
             assert key == key.lower()
@@ -111,7 +109,7 @@ class Event(object):
         """
         :returns: a list of (field_name, blob_id, extension) tuples, one per file field
         """
-        return [(key,) + self.get_file_data(key) for key in self.keys if Event.field_type(key) == FieldType.FILE]
+        return [(key,) + self.get_file_data(key) for key in self.keys if Event.field_type(key) == memdam.common.field.FieldType.FILE]
 
     def has_file(self):
         """
@@ -119,7 +117,7 @@ class Event(object):
         :rtype: bool
         """
         for key in self.keys:
-            if Event.field_type(key) == FieldType.FILE:
+            if Event.field_type(key) == memdam.common.field.FieldType.FILE:
                 return True
         return False
 
@@ -181,13 +179,13 @@ class Event(object):
         """
         :param name: The name of the field to parse
         :type  name: string
-        :returns: the FieldType for a field with the given name
-        :rtype: FieldType
+        :returns: the memdam.common.field.FieldType for a field with the given name
+        :rtype: memdam.common.field.FieldType
         :throws: Exception if the name does not conform to the above specification
         """
         data = name.upper().split('__')
         type_name = data[1]
-        return getattr(FieldType, type_name)
+        return getattr(memdam.common.field.FieldType, type_name)
 
     @staticmethod
     def secondary_type_option(name):
@@ -211,11 +209,11 @@ class Event(object):
         keys = list(data.keys())
         for key in keys:
             field_type = Event.field_type(key)
-            if field_type == FieldType.TIME:
+            if field_type == memdam.common.field.FieldType.TIME:
                 data[key] = dateutil.parser.parse(data[key])
-            elif field_type == FieldType.ID:
+            elif field_type == memdam.common.field.FieldType.ID:
                 data[key] = uuid.UUID(data[key])
-            elif field_type == FieldType.RAW:
+            elif field_type == memdam.common.field.FieldType.RAW:
                 data[key] = buffer(base64.b64decode(data[key]))
         return Event(**data)
 
