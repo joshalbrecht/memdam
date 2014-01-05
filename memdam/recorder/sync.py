@@ -1,6 +1,10 @@
 
+import os
+
 import memdam
+import memdam.common.utils
 import memdam.common.query
+import memdam.blobstore.api
 import memdam.recorder.workmanager
 
 class SyncWorker(memdam.recorder.workmanager.Worker):
@@ -11,18 +15,25 @@ class SyncWorker(memdam.recorder.workmanager.Worker):
         self._blob_source = blob_source
         self._blob_dest = blob_dest
 
+    #TODO: what are the rules about sharing blobs? currently a race condition if there are two events that both refer to the same blob. One may get uploaded and then deleted right while the other one is being transferred. Or it may fail while being deleted because it is being copied, or any number of weird filesystem corner cases (on windows mostly)
     def _process(self, work_id):
         memdam.log.info("Processing event " + str(work_id))
         event = self._event_source.get(work_id)
-        for blob_id in event.blob_ids:
+        for field, blob_id, extension in event.blob_ids:
             memdam.log.info("Processing blob " + str(work_id))
-            #TODO: someday, can check for existence in dest first, so that we don't have to re-upload files
-            self._blob_source.get_data_to_file()
-            self._blob_dest.set_data_from_file()
+            temp_file = memdam.common.utils.make_temp_path()
+            try:
+                #TODO: someday, can check for existence in dest first, so that we don't have to re-upload files. Maybe ensure etag or something
+                self._blob_source.get_data_to_file(blob_id, extension, temp_file)
+            except memdam.blobstore.api.MissingBlob:
+                #check that it exists at the destination at least:
+                assert self._blob_dest.exists(blob_id, extension), "Fail. Tried to synchronize blob %s for event %s but there is no data for it?" % (blob_id, work_id)
+            self._blob_dest.set_data_from_file(blob_id, extension, temp_file)
+            os.remove(temp_file)
         self._event_dest.save([event])
-        self._event_source.delete([event])
-        for blob_id in event.blob_ids:
-            self._blob_source.delete(blob_id)
+        self._event_source.delete(event.id__id)
+        for field, blob_id, extension in event.blob_ids:
+            self._blob_source.delete(blob_id, extension)
 
 class SyncManager(memdam.recorder.workmanager.Manager):
     def __init__(self, source, dest):
@@ -43,7 +54,7 @@ class SyncManager(memdam.recorder.workmanager.Manager):
     def _get_oldest_event_ids(self, limit=100):
         query = memdam.common.query.Query(order=[('time__time', True)], limit=limit)
         events = self._source.find(query)
-        return set([event.id for event in events])
+        return set([event.id__id for event in events])
 
 class Synchronizer(memdam.recorder.workmanager.PollingWorkManager):
     """

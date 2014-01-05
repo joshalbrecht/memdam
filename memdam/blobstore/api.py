@@ -1,7 +1,15 @@
 
+class MissingBlob(Exception):
+    """
+    Raised if a blob is missing where it is expected.
+    """
+
+#TODO: go ensure that the operations for each implementation are atomic
 class Blobstore(object):
     """
-    Interface for file storage
+    Interface for file storage.
+    Each operation should be atomic, and calling a bunch of operations for the same id should not
+    cause any undocumented failures.
     """
 
     def get_url_prefix(self):
@@ -36,6 +44,7 @@ class Blobstore(object):
         :type  extension: string
         :param output_path: where the data should be written
         :type  output_path: string
+        :raises: MissingBlob(if there is no data for this blob_id+extension)
         """
 
     def delete(self, blob_id, extension):
@@ -47,4 +56,14 @@ class Blobstore(object):
         :type  blob_id: uuid.UUID
         :param extension: a lowercase file extension
         :type  extension: string
+        """
+
+    def exists(self, blob_id, extension):
+        """
+        :param blob_id: the unique identifier for the blob
+        :type  blob_id: uuid.UUID
+        :param extension: a lowercase file extension
+        :type  extension: string
+        :returns: True iff the blob currently exists
+        :rtype: boolean
         """

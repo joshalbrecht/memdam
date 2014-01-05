@@ -1,10 +1,5 @@
 
-fix memdam.log
-    either look at how it works for flask
-    or call start logging thingy
-    especially important to replace the call in urls (error handling)  ing)
-test synchronizer using some events and blobs
-finish synchronizer
+add assertions to the end of the synchronizer test
 finish removal of SMTP and queuing complexity from client
 fix server integration and unit tests
 rename unit tests (archive and test_blobstore are misaligned)
@@ -17,6 +12,21 @@ make collector run on windows
 deployment scripts
     ssl: http://flask.pocoo.org/snippets/111/
     setup dns for joshalbrecht.chronographr.com
+    remember to fix logging in wsgi context:
+        can use this if necessary: flask.current_app.logger.info('grolsh')
+        also remember that memdam.common.parallel may not work in that context... (should test and at least warn)
+
+future (cleanup)
+    clean up file attributes:
+        in python, should be strictly the UUID
+        in json, should be the absolute URL to get to them
+        call to_json_dict, and have to pass in the base URL for the blobs
+    let's remove the multi-file (one per namespace) mode? it can still be in different tables, but multi file makes transactions horrible
+    search for an minimize TODOs:
+        only use TODOs for functionality that is incomplete, and in those cases, just raise NotImplementedError in most cases instead
+        for features, put them here instead
+        for cleanup and testing and docs, generally do it immediately, otherwise put it here
+    add auto trace logging (AOP)
 
 future (collectors)
 finish gmail import

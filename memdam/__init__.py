@@ -16,6 +16,22 @@ STDOUT_HANDLER.setFormatter(FORMATTER)
 #a custom logging level for logging ridiculous amounts of information when first testing functions
 TRACE = 5
 
+#add a trace level, because I am verbose
+def trace(self, msg, *args, **kwargs):
+    """
+    Log 'msg % args' with severity 'TRACE'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    logger.trace("Houston, we are sending you a mesage: %s", "interesting problem", exc_info=1)
+    """
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, msg, args, **kwargs)
+
+def hack_logger(newlog):
+    newlog.trace = types.MethodType(trace, newlog)
+
 def create_logger(handlers, level, name):
     """
     Build a new logger given an iterable of handlers
@@ -25,19 +41,7 @@ def create_logger(handlers, level, name):
     for handler in handlers:
         newlog.addHandler(handler)
 
-    #add a trace level, because I am verbose
-    def trace(self, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with severity 'TRACE'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.trace("Houston, we are sending you a mesage: %s", "interesting problem", exc_info=1)
-        """
-        if self.isEnabledFor(TRACE):
-            self._log(TRACE, msg, args, **kwargs)
-    newlog.trace = types.MethodType(trace, newlog)
+    hack_logger(newlog)
     return newlog
 
 #set up a default logger in case anything goes wrong before we've set up the real, multi-process

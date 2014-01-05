@@ -77,11 +77,22 @@ class Eventstore(memdam.eventstore.api.Eventstore):
 
     def delete(self, event_id):
         for table_name in self._all_table_names():
-            conn = self._connect(table_name, read_only=True)
+            conn = self._connect(table_name, read_only=False)
             namespace = table_name.replace("_", ".")
             cur = conn.cursor()
-            sql = "DELETE FROM %s WHERE id__id = ?;" % (table_name)
+            cur.execute("BEGIN EXCLUSIVE")
+            sql = "SELECT _id FROM %s WHERE id__id = ?;" % (table_name)
             execute_sql(cur, sql, (buffer(event_id.bytes),))
+            for row in cur.fetchall():
+                rowid = row[0]
+                names = [x[0] for x in cur.description]
+                for i in range(0, len(names)):
+                    name = names[i]
+                    if name == '_id':
+                        continue
+                    if memdam.common.event.Event.field_type(name) == memdam.common.event.FieldType.TEXT:
+                        execute_sql(cur, "DELETE FROM %s__%s__docs WHERE docid = ?;" % (table_name, name), (rowid))
+                execute_sql(cur, "DELETE FROM %s WHERE _id = %s" % (table_name, rowid), ())
             conn.commit()
 
     def _find_matching_events_in_table(self, table_name, query):
@@ -140,6 +151,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
 
     def _get_or_create_memory_connection(self):
         assert self.folder == ":memory:"
+        #TODO: when all tests are passing again, do we need memory_connection at all? I don't think so...
         if self.memory_connection == None:
             self.memory_connection = sqlite3.connect(self.folder, isolation_level="EXCLUSIVE")
         return self.memory_connection
@@ -170,6 +182,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         assert re.compile(r"[a-z][a-z_]*").match(table_name), "Should only use a-z and '_' in namespaces"
         conn = self._connect(table_name, read_only=False)
         cur = conn.cursor()
+        cur.execute("BEGIN EXCLUSIVE")
         existing_columns = self._query_existing_columns(cur, table_name)
         key_names = set()
         for event in events:
@@ -248,11 +261,8 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         Insert all events at once.
         Assumes that the schema is correct.
         """
-
         #required because of stupid text fields.
         #we need to explicitly set the ids of everything inserted, or iteratively insert and check for lastrowid (which is slow and pathological and will end up doing this effectively anyway I think)
-        cur.execute("BEGIN EXCLUSIVE")
-
         #figure out what the next id to insert should be
         cur.execute("SELECT _id FROM %s ORDER BY _id DESC LIMIT 1" % (table_name))
         next_row_id = 1
@@ -322,7 +332,7 @@ def _create_event_from_row(row, names, namespace, conn):
                 value = cur.fetchall()[0][0]
             elif field_type == memdam.common.event.FieldType.ID:
                 value = uuid.UUID(bytes=value)
-        data[name] = value
+            data[name] = value
     data['type__namespace'] = namespace
     return memdam.common.event.Event(**data)
 

@@ -14,7 +14,7 @@ import memdam.common.enum
 FieldType = memdam.common.enum.enum('NUMBER', 'STRING', 'TEXT', 'ENUM', 'RAW', 'BOOL', 'TIME', 'ID', 'LONG', 'FILE', 'NAMESPACE')
 
 SUPPORTED_URLS = ('file://', 'http://', 'https://')
-FILE_REGEX = re.compile(r'^[a-f0-9]{32}\.[a-z0-9]+$')
+FILE_REGEX = re.compile(r'^[a-f0-9]{32}\.[a-z0-9_]+$')
 
 def new(namespace, **kwargs):
     """Convenience function for the creation of events"""
@@ -59,28 +59,29 @@ class Event(object):
     """
 
     def __init__(self, **kwargs):
-        #TODO: events should be immutable and hashable
+        #TODO: events should be immutable
         #TODO: validate all keys (allowable characters, correct type, no overlap with top level, etc)
         self.id__id = None
         self.time_time = None
         self.keys = set()
         for key, value in kwargs.items():
             key = unicode(key)
-            if value != None:
-                #validate that the argument names and types conform to the above specification.
-                field_type = Event.field_type(key)
-                if field_type == FieldType.LONG:
-                    assert value < 18446744073709551616L
-                if field_type == FieldType.FILE:
-                    lowered = value.lower()
-                    assert len([True for url_type in SUPPORTED_URLS if lowered.startswith(url_type)]) > 0, "All file variables must use one of the following url schemes: " + SUPPORTED_URLS
-                    assert '/' in lowered, "must use absolute file urls for file type variables"
-                    assert FILE_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
-                if isinstance(value, basestring):
-                    value = unicode(value)
-                assert key == key.lower()
-                setattr(self, key, value)
-                self.keys.add(key)
+            assert value != None, "Can not set attributes to None. If you want to, simply leave it off."
+            #validate that the argument names and types conform to the above specification.
+            assert re.compile("^[a-z_]+$").match(key), "Field %s contains something besides a-z_" % (key)
+            field_type = Event.field_type(key)
+            if field_type == FieldType.LONG:
+                assert value < 18446744073709551616L
+            if field_type == FieldType.FILE:
+                lowered = value.lower()
+                assert len([True for url_type in SUPPORTED_URLS if lowered.startswith(url_type)]) > 0, "All file variables must use one of the following url schemes: " + SUPPORTED_URLS
+                assert '/' in lowered, "must use absolute file urls for file type variables"
+                assert FILE_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
+            if isinstance(value, basestring):
+                value = unicode(value)
+            assert key == key.lower()
+            setattr(self, key, value)
+            self.keys.add(key)
         assert hasattr(self, 'id__id')
         assert hasattr(self, 'time__time')
         assert hasattr(self, 'type__namespace')
@@ -103,7 +104,14 @@ class Event(object):
         url = self.get_field(key)
         filename = url.split('/')[-1]
         data = filename.split('.')
-        return (data[:-1], data[-1])
+        return (uuid.UUID(data[0]), data[1])
+
+    @property
+    def blob_ids(self):
+        """
+        :returns: a list of (field_name, blob_id, extension) tuples, one per file field
+        """
+        return [(key,) + self.get_file_data(key) for key in self.keys if Event.field_type(key) == FieldType.FILE]
 
     def has_file(self):
         """

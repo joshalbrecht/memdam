@@ -1,4 +1,6 @@
 
+import requests
+
 import memdam.blobstore.api
 
 class Blobstore(memdam.blobstore.api.Blobstore):
@@ -31,3 +33,12 @@ class Blobstore(memdam.blobstore.api.Blobstore):
     def delete(self, blob_id, extension):
         url = "/blobs/" + blob_id.hex + "." + extension
         self._client.request("DELETE", url)
+
+    #TODO: lol this is inefficient. Requests the entire file. Should make something less stupid.
+    def exists(self, blob_id, extension):
+        new_url = "/blobs/" + blob_id.hex + "." + extension
+        try:
+            self._client.request("GET", new_url, headers={'Accept': None, 'Content-Type': None})
+        except requests.RequestException:
+            return False
+        return True

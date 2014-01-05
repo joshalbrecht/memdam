@@ -1,4 +1,10 @@
 
+import shutil
+import tempfile
+import os
+import re
+import uuid
+
 import memdam.common.error
 
 class Collector(object):
@@ -16,7 +22,8 @@ class Collector(object):
     """
 
     #TODO: when started, destroy all files in the temp workspace
-    def __init__(self, config, state_store):
+    #TODO: assert that these kwargs are non-null, and add the blob and event stores
+    def __init__(self, config=None, state_store=None):
         """
         Config is loaded initially and defines any custom configuration for this collector.
         An empty config will be provided if there was none defined by the user.
@@ -34,7 +41,7 @@ class Collector(object):
 
     #TODO: rename to be protected (_ prefix)
     #TODO: don't actually need the limit parameter anymore I don't think?
-    def collect(self, limit):
+    def collect(self, blobstore, limit):
         """
         Must run fairly quickly (below whatever sampling threshold is configured).
         If not, will effectively be called as frequently as possible.
@@ -64,15 +71,31 @@ class Collector(object):
         Obviously not guaranteed that this will be called in the case of an unclean shutdown.
         """
 
+    #TODO: move these args into the constructor
     def collect_and_persist(self, eventstore, blobstore):
         #TODO: forgot the name for intmax
-        for event in self.collect(1000000):
+        for event in self.collect(blobstore, 1000000):
             try:
                 new_event = _save_files_in_event(event, blobstore)
                 eventstore.save([new_event])
             except Exception, e:
                 memdam.common.error.report(e)
         self.post_collect()
+
+    def _save_file(self, file_path, blobstore, consume_file=False, generate_id=True):
+        uuid_name_regex = re.compile(r"^[0-9a-f]{32}\.[a-z0-9]+$")
+        folder, file_name = os.path.split(file_path)
+        if generate_id == False:
+            assert uuid_name_regex.match(file_name), "file name must be a hex encoded uuid with extension"
+        if (generate_id == None and uuid_name_regex.match(file_name)) or generate_id == False:
+            blob_id = uuid.UUID('.'.join(file_name.split('.')[:-1]))
+        else:
+            blob_id = uuid.uuid4()
+        extension = file_name.split('.')[-1].lower()
+        result = blobstore.set_data_from_file(blob_id, extension, file_path)
+        if consume_file:
+            os.remove(file_path)
+        return result
 
 def _save_files_in_event(event, blobstore):
     """

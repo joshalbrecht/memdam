@@ -33,7 +33,11 @@
         },
         "^([a-z]+_)*[a-z]+__string(__([a-z]+_)*[a-z]+){0,1}$": {
             "type": "string",
-            "description": "An unknown property, encoded as a string. The second capture group (if present) should describe the format or meaning of the string (exampe: 'gps_coordinates' or 'iso_6709'). Because there is no format, is not indexed."
+            "description": "An unknown property, encoded as a string (UTF8). The second capture group (if present) should describe the format or meaning of the string (exampe: 'gps_coordinates' or 'iso_6709'). Because there is no format, is not indexed."
+        },
+        "^([a-z]+_)*[a-z]+__raw(__([a-z]+_)*[a-z]+){0,1}$$": {
+            "type": "string",
+            "description": "A blob. Use for storing small binary information that would be silly to make a separate file for. Optionally include the type information in the second capture group."
         },
         "^([a-z]+_)*[a-z]+__text$": {
             "type": "string",
