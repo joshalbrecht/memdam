@@ -3,7 +3,7 @@ import re
 
 import memdam.common.field
 
-BASE_FIELD_PATTERN = r"[a-z]([a-z0-9]+_)*[a-z0-9]+"
+BASE_FIELD_PATTERN = r"[a-z][a-z0-9]*(_[a-z0-9]+)*"
 FIELD_TYPE_PATTERN = '(' + '|'.join([r.lower() for r in memdam.common.field.FieldType.names.values()]) + ')'
 UUID_HEX_PATTERN = r"[0-9a-f]{32}"
 EXTENSION_PATTERN = r"[a-z0-9_]+"

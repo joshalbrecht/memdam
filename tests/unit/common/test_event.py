@@ -12,7 +12,7 @@ def test_serialization():
     event = memdam.common.event.new(
         "some.data.type",
         cpu__number__percent=0.567,
-        a__string__rfc123="Didnt+Look+Up+This+Data+Format",
+        a1_2__string__rfc123="Didnt+Look+Up+This+Data+Format",
         b__text="string for searching",
         c__enum__country="USA",
         d__bool=True,

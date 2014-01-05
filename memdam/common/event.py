@@ -66,6 +66,8 @@ class Event(object):
             key = unicode(key)
             assert value != None, "Can not set attributes to None. If you want to, simply leave it off."
             #validate that the argument names and types conform to the above specification.
+            if not memdam.common.validation.EVENT_FIELD_REGEX.match(key):
+                x = 4
             assert memdam.common.validation.EVENT_FIELD_REGEX.match(key), "Field %s contains something besides a-z_" % (key)
             field_type = Event.field_type(key)
             if field_type == memdam.common.field.FieldType.LONG:

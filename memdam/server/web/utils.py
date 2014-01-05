@@ -14,10 +14,9 @@ def get_archive():
     archive = getattr(flask.g, '_archive', None)
     if archive is None:
         db_file = app.config['DATABASE_FOLDER']
-        blob_url = app.config['BLOB_URL']
         if not os.path.exists(db_file):
             os.makedirs(db_file)
-        archive = flask.g._archive = memdam.eventstore.sqlite.Eventstore(db_file, blob_url)
+        archive = flask.g._archive = memdam.eventstore.sqlite.Eventstore(db_file)
     return archive
 
 def get_blobstore():

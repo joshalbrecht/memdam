@@ -1,4 +1,5 @@
 
+test that event fields with numbers are allowable now
 consolidate validation logic
 fix all unit tests
 fix integration tests
