@@ -23,17 +23,17 @@ def blobs(unsafe_blob_id, unsafe_extension):
     extension = validate_extension(unsafe_extension)
     filename = memdam.common.utils.make_temp_path()
     if flask.request.method == 'PUT':
-        if flask.request.json:
+        if 'multipart/form-data' in flask.request.content_type:
+            if not len(flask.request.files) == 1:
+                raise memdam.server.web.errors.BadRequest("Must only upload one file at a time")
+            uploaded_file = flask.request.files.values()[0]
+            uploaded_file.save(filename)
+        elif flask.request.json:
             if not 'data' in flask.request.json:
                 raise memdam.server.web.errors.BadRequest("Must base64 encode the data into the 'data' key")
             raw_data = base64.b64decode(flask.request.json['data'])
             with open(filename, "wb") as out_file:
                 out_file.write(raw_data)
-        elif 'multipart/form-data' in flask.request.content_type:
-            if not len(flask.request.files) == 1:
-                raise memdam.server.web.errors.BadRequest("Must only upload one file at a time")
-            uploaded_file = flask.request.files.values()[0]
-            uploaded_file.save(filename)
         else:
             raise memdam.server.web.errors.BadRequest("Must use json or multipart/form-data upload methods")
         memdam.server.web.utils.get_blobstore().set_data_from_file(blob_id, extension, filename)

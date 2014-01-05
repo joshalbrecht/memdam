@@ -1,5 +1,4 @@
-blobs resource unit tests
-    waiting on internet to figure out how to upload a file to flask
+
 fix memdam.log
     either look at how it works for flask
     or call start logging thingy
