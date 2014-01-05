@@ -18,6 +18,7 @@ import memdam.eventstore.sqlite
 import memdam.eventstore.https
 import memdam.recorder.config
 import memdam.recorder.collector.collector
+import memdam.recorder.sync
 
 class SystemStats(memdam.recorder.collector.collector.Collector):
     """
@@ -32,18 +33,17 @@ def main():
 
     #TODO: actually read some configuration
     configFile = "/home/cow/temp.json"
+    local_folder = "/tmp"
+    #TODO: in general, collectors should probably take a device
     device = "pretendThatThisIsAUUID"
     config = memdam.recorder.config.Config(configFile)
-    num_workers = 4
-    to_addresses = "user@domain.com"
-    smtp_address = ('127.0.0.1', 8465)
 
     handlers = [memdam.STDOUT_HANDLER]
     memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
 
     #create both local and remote blob and event stores
-    local_blob_folder = os,path.join(local_folder, "blobs")
-    local_event_folder = os,path.join(local_folder, "events")
+    local_blob_folder = os.path.join(local_folder, "blobs")
+    local_event_folder = os.path.join(local_folder, "events")
     client = memdam.common.client.MemdamClient(server_url, username, password)
     local_blobs = memdam.blobstore.localfolder.Blobstore(local_blob_folder)
     remote_blobs = memdam.blobstore.https.Blobstore(client)
@@ -61,15 +61,8 @@ def main():
         collector.collect_and_persist(local_events, local_blobs)
     sched.add_cron_job(collect, second='0,10,20,30,40,50')
 
-    #TODO: actually, probably don't use the schedule for this--just runs continuously at some polling interval
-    #main thread pulls things (uuids) into a queue that is consumed by workers
-    #use some of the existing code for that
-
-    #processes the events periodically
-    def _sync_blobs():
-        """Scheduler only calls functions without arguments"""
-        sync_blobs(local_blobs, remote_blobs)
-    sched.add_cron_job(_sync_blobs, second='0,30')
+    synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)
+    synchronizer.start()
 
     try:
         #run until the exit signal has been recieved
@@ -79,10 +72,8 @@ def main():
         sched.shutdown()
         #stop each collector
         collector.stop()
-        #finish turning all events into messages and mail them
-        eventQueue.process_events()
-        #finish mailing everything
-        mail_queue.shutdown()
+        #stop synchronizing everything
+        synchronizer.stop()
         #TODO: cleaner shutdown. Figure out what exception type this is
         raise e
 

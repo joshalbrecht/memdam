@@ -4,7 +4,6 @@ fix memdam.log
     either look at how it works for flask
     or call start logging thingy
     especially important to replace the call in urls (error handling)  ing)
-
 test synchronizer using some events and blobs
 finish synchronizer
 finish removal of SMTP and queuing complexity from client
