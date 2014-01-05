@@ -25,6 +25,10 @@ class Blobstore(memdam.blobstore.api.Blobstore):
         path = self._get_path(blob_id, extension)
         shutil.copyfile(path, output_path)
 
+    def delete(self, blob_id, extension):
+        path = self._get_path(blob_id, extension)
+        os.remove(path)
+
     def _get_path(self, blob_id, extension):
         """
         Use this to figure out where data is/should be stored for a blob.

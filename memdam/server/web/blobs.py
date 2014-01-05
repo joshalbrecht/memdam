@@ -13,7 +13,7 @@ import memdam.server.web.auth
 
 blueprint = flask.Blueprint('blobs', __name__)
 
-@blueprint.route('/<unsafe_blob_id>.<unsafe_extension>', methods = ['GET', 'PUT'])
+@blueprint.route('/<unsafe_blob_id>.<unsafe_extension>', methods = ['GET', 'PUT', 'DELETE'])
 @memdam.server.web.auth.requires_auth
 def blobs(unsafe_blob_id, unsafe_extension):
     """
@@ -38,6 +38,9 @@ def blobs(unsafe_blob_id, unsafe_extension):
             raise memdam.server.web.errors.BadRequest("Must use json or multipart/form-data upload methods")
         memdam.server.web.utils.get_blobstore().set_data_from_file(blob_id, extension, filename)
         os.remove(filename)
+        return '', 204
+    elif flask.request.method == 'DELETE':
+        memdam.server.web.utils.get_blobstore().delete(blob_id, extension)
         return '', 204
     else:
         memdam.server.web.utils.get_blobstore().get_data_to_file(blob_id, extension, filename)

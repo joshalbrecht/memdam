@@ -37,3 +37,14 @@ class Blobstore(object):
         :param output_path: where the data should be written
         :type  output_path: string
         """
+
+    def delete(self, blob_id, extension):
+        """
+        Ensure that the file with this blob id and extension is removed.
+        Idempotent.
+
+        :param blob_id: the unique identifier for the blob
+        :type  blob_id: uuid.UUID
+        :param extension: a lowercase file extension
+        :type  extension: string
+        """

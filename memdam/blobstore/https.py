@@ -27,3 +27,7 @@ class Blobstore(memdam.blobstore.api.Blobstore):
         response = self._client.request("GET", new_url, headers={'Accept': None, 'Content-Type': None})
         with open(output_path, 'wb') as outfile:
             outfile.write(response.content)
+
+    def delete(self, blob_id, extension):
+        url = "/blobs/" + blob_id.hex + "." + extension
+        self._client.request("DELETE", url)

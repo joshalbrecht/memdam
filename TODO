@@ -5,15 +5,12 @@ fix memdam.log
     or call start logging thingy
     especially important to replace the call in urls (error handling)  ing)
 
-
-add delete method to eventstore
-add test
-add delete method to blobstore
-add test
 test synchronizer using some events and blobs
 finish synchronizer
 finish removal of SMTP and queuing complexity from client
 fix server integration and unit tests
+rename unit tests (archive and test_blobstore are misaligned)
+add separate tests for blobstore
 fix all tests
 check test coverage
 write any missing and necessary tests
