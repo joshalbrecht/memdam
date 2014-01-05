@@ -1,13 +1,13 @@
 
-add assertions to the end of the synchronizer test
-finish removal of SMTP and queuing complexity from client
-fix server integration and unit tests
-rename unit tests (archive and test_blobstore are misaligned)
-add separate tests for blobstore
-fix all tests
+fix all unit tests
+fix integration tests
 check test coverage
-write any missing and necessary tests
 make screenshot collector
+    really, new file collector.
+    just takes a folder where files appear, and uploads them with some particular settings (namespace, etc), possibly deleting as you go
+    heh...  which is also the more general case of "file watcher", uploading only on new file (not on modification or deletion)
+check test coverage specifically for unit tests
+add separate tests for blobstore
 make collector run on windows
 deployment scripts
     ssl: http://flask.pocoo.org/snippets/111/
@@ -27,6 +27,8 @@ future (cleanup)
         for features, put them here instead
         for cleanup and testing and docs, generally do it immediately, otherwise put it here
     add auto trace logging (AOP)
+    make things configurable that should be configurable
+    consolidate validation logic
 
 future (collectors)
 finish gmail import
