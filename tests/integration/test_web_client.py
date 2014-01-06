@@ -23,9 +23,9 @@ def test_save_and_get_event_with_file():
     password = memdam.server.web.urls.app.config['PASSWORD']
     client = memdam.common.client.MemdamClient("http://127.0.0.1:5000/api/v1/", username, password)
     event = memdam.common.event.new(
-        "some.data.type",
+        u"some.data.type",
         cpu__number__percent=0.567,
-        mydata__file="file://"+test_file,
+        mydata__file=u"file://"+test_file,
     )
     #test saving an event
     remote_eventstore = memdam.eventstore.https.Eventstore(client)

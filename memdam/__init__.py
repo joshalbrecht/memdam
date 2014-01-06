@@ -19,7 +19,7 @@ TRACE = 5
 #add a trace level, because I am verbose
 def trace(self, msg, *args, **kwargs):
     """
-    Log 'msg % args' with severity 'TRACE'.
+    Log "msg % args" with severity "TRACE".
 
     To pass exception information, use the keyword argument exc_info with
     a true value, e.g.
@@ -46,13 +46,13 @@ def create_logger(handlers, level, name):
 
 #set up a default logger in case anything goes wrong before we've set up the real, multi-process
 #logging
-SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN, name='default')
+SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN, name="default")
 log = SIMPLE_LOGGER
 
 def use_debug_logger():
     """Convenience function. Call this to log all statements (TRACE and above) to STDOUT"""
     global log
-    log = create_logger([STDOUT_HANDLER], TRACE, name='testlogger')
+    log = create_logger([STDOUT_HANDLER], TRACE, name="testlogger")
 
 #access these globals for runtime options (enable debugging, etc)
 class Config(object):

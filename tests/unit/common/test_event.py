@@ -10,17 +10,17 @@ import memdam.common.event
 def test_serialization():
     """Check that converting to and from a json dict gives the same object"""
     event = memdam.common.event.new(
-        "some.data.type",
+        u"some.data.type",
         cpu__number__percent=0.567,
-        a1_2__string__rfc123="Didnt+Look+Up+This+Data+Format",
-        b__text="string for searching",
-        c__enum__country="USA",
+        a1_2__string__rfc123=u"Didnt+Look+Up+This+Data+Format",
+        b__text=u"string for searching",
+        c__enum__country=u"USA",
         d__bool=True,
         e__time=memdam.common.timeutils.now(),
         f__id=uuid.uuid4(),
         g__long=184467440737095516L,
-        h__file="http://somewhere.com/blobs/" + uuid.uuid4().hex + '.txt',
-        i__namespace="some.thing",
+        h__file=u"http://somewhere.com/blobs/" + uuid.uuid4().hex + '.txt',
+        i__namespace=u"some.thing",
         j__raw=buffer(uuid.uuid4().bytes)
         )
     serialized_json_dict = event.to_json_dict()

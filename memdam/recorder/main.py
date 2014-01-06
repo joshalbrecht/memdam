@@ -26,7 +26,7 @@ class SystemStats(memdam.recorder.collector.collector.Collector):
     """
 
     def collect(self):
-        return [memdam.common.event.new("com.memdam.cpu", cpu__number__percent=0.2)]
+        return [memdam.common.event.new(u"com.memdam.cpu", cpu__number__percent=0.2)]
 
 def main():
     """Run the daemon. Blocks."""

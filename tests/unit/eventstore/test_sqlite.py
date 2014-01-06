@@ -13,7 +13,7 @@ import memdam.common.event
 import memdam.common.query
 import memdam.eventstore.sqlite
 
-NAMESPACE = "somedatatype"
+NAMESPACE = u"somedatatype"
 
 class SqliteBase(unittest.TestCase):
     """
@@ -29,7 +29,7 @@ class SqliteBase(unittest.TestCase):
 
     def __init__(self, folder, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
-        self.blob_url = "https://127.0.0.1/testcasepath"
+        self.blob_url = u"https://127.0.0.1/testcasepath"
         self.archive = memdam.eventstore.sqlite.Eventstore(folder)
         self.simple_event = memdam.common.event.new(
             NAMESPACE,
@@ -37,15 +37,15 @@ class SqliteBase(unittest.TestCase):
         self.complex_event = memdam.common.event.new(
             NAMESPACE,
             cpu__number__percent=0.567,
-            a__string__rfc123="Didnt+Look+Up+This+Data+Format",
-            b__text="string for searching",
-            c__enum__country="USA",
+            a__string__rfc123=u"Didnt+Look+Up+This+Data+Format",
+            b__text=u"string for searching",
+            c__enum__country=u"USA",
             d__bool=True,
             e__time=memdam.common.timeutils.now(),
             f__id=uuid.uuid4(),
             g__long=184467440737095516L,
-            h__file=self.blob_url + "/" + uuid.uuid4().hex + '.txt',
-            i__namespace="some.thing",
+            h__file=self.blob_url + u"/" + uuid.uuid4().hex + u'.txt',
+            i__namespace=u"some.thing",
             j__raw=buffer(uuid.uuid4().bytes),
         )
 
@@ -77,8 +77,8 @@ class SqliteBase(unittest.TestCase):
         """Saving multiple Events should succeed"""
         events = [
             memdam.common.event.new(NAMESPACE, cpu__number__percent=0.567),
-            memdam.common.event.new(NAMESPACE, some__text="tryr", x__text="g98f"),
-            memdam.common.event.new(NAMESPACE, some__text="asdfsd", x__text="d"),
+            memdam.common.event.new(NAMESPACE, some__text=u"tryr", x__text=u"g98f"),
+            memdam.common.event.new(NAMESPACE, some__text=u"asdfsd", x__text=u"d"),
         ]
         self.archive.save(events)
         returned_events = set(self.archive.find(memdam.common.query.Query()))
@@ -93,15 +93,15 @@ class SqliteBase(unittest.TestCase):
 
     def test_find_query_order(self):
         """Queries should respect the order parameter"""
-        a = memdam.common.event.new(NAMESPACE, cpu__number=0.1, key__string="aaa")
-        b = memdam.common.event.new(NAMESPACE, cpu__number=0.2, key__string="bbb")
+        a = memdam.common.event.new(NAMESPACE, cpu__number=0.1, key__string=u"aaa")
+        b = memdam.common.event.new(NAMESPACE, cpu__number=0.2, key__string=u"bbb")
         c = memdam.common.event.new(NAMESPACE, cpu__number=0.3)
         events = [a, b, c]
         self.archive.save(events)
-        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('cpu__number', True)]))[0], a)
-        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('cpu__number', False)]))[0], c)
-        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('key__string', True)]))[0], c)
-        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[('key__string', False)]))[0], b)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[(u'cpu__number', True)]))[0], a)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[(u'cpu__number', False)]))[0], c)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[(u'key__string', True)]))[0], c)
+        nose.tools.eq_(self.archive.find(memdam.common.query.Query(order=[(u'key__string', False)]))[0], b)
 
     def test_delete(self):
         self.archive.save([self.simple_event])
@@ -141,5 +141,5 @@ class LocalFileTest(SqliteBase):
 if __name__ == '__main__':
     tester = LocalFileTest()
     tester.setUp()
-    tester.test_delete_text()
+    tester.test_save_multiple_times()
     tester.tearDown()

@@ -79,7 +79,7 @@ class Event(object):
                 assert '/' in lowered, "must use absolute file urls for file type variables"
                 assert memdam.common.validation.BLOB_FILE_NAME_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
             assert isinstance(key, unicode)
-            if isinstance(value, basestring):
+            if field_type != memdam.common.field.FieldType.RAW and isinstance(value, basestring):
                 assert isinstance(value, unicode)
             assert key == key.lower()
             setattr(self, key, value)

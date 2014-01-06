@@ -132,7 +132,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
     def _all_table_names(self):
         """
         :returns: the names of all tables
-        :rtype: list(string)
+        :rtype: list(unicode)
         """
         if self.folder == ":memory:":
             #list all tables that are not "__docs"
@@ -144,9 +144,9 @@ class Eventstore(memdam.eventstore.api.Eventstore):
                 table_name = row[1]
                 if not "__docs" in table_name:
                     tables.append(table_name)
-            return tables
         else:
-            return os.listdir(self.folder)
+            tables = list(os.listdir(self.folder))
+        return [unicode(r) for r in tables]
 
     def _get_or_create_memory_connection(self):
         assert self.folder == ":memory:"
@@ -225,6 +225,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         Create a table with the default column (sample_time)
         """
         memdam.log.trace("Creating default column for %s" % (table_name,))
+        execute_sql(cur, "PRAGMA encoding = 'UTF-8';")
         execute_sql(cur, "CREATE TABLE %s(_id INTEGER PRIMARY KEY, time__time INTEGER, id__id STRING);" % (table_name,))
         execute_sql(cur, "CREATE INDEX %s__time__time__asc ON %s (time__time ASC);" % (table_name, table_name))
         execute_sql(cur, "CREATE INDEX %s__id__id__asc ON %s (id__id ASC);" % (table_name, table_name))

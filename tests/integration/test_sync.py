@@ -24,8 +24,8 @@ class TestCollector(memdam.recorder.collector.collector.Collector):
         file_url_a = self._save_file(file_path, blobstore, consume_file=False)
         file_url_b = self._save_file(file_path, blobstore, consume_file=True)
         TestCollector.events = [
-            memdam.common.event.new(NAMESPACE, text__raw="mime and garbage", attachment_one__file=file_url_a, to__text="thejash,someguy,etc"),
-            memdam.common.event.new(NAMESPACE, text__raw="blah blah whatever", attachment_one__file=file_url_b, attachment_two__file=file_url_a, to__text="someoneelse")
+            memdam.common.event.new(NAMESPACE, text__raw=u"mime and garbage", attachment_one__file=file_url_a, to__text=u"thejash,someguy,etc"),
+            memdam.common.event.new(NAMESPACE, text__raw=u"blah blah whatever", attachment_one__file=file_url_b, attachment_two__file=file_url_a, to__text=u"someoneelse")
         ]
         return TestCollector.events
 

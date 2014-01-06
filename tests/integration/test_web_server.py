@@ -6,7 +6,7 @@ import memdam.common.event
 import memdam.common.timeutils
 from memdam.server.web.urls import app
 
-NAMESPACE = "whatever"
+NAMESPACE = u"whatever"
 
 #TODO: change this to actually running the web server, insert and query
 def test_put_event():
