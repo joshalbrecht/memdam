@@ -19,21 +19,21 @@ class SyncWorker(memdam.recorder.workmanager.Worker):
     def _process(self, work_id):
         memdam.log.info("Processing event " + str(work_id))
         event = self._event_source.get(work_id)
-        for field, blob_id, extension in event.blob_ids:
+        for field, blob_ref in event.blob_ids:
             memdam.log.info("Processing blob " + str(work_id))
             temp_file = memdam.common.utils.make_temp_path()
             try:
                 #TODO: someday, can check for existence in dest first, so that we don't have to re-upload files. Maybe ensure etag or something
-                self._blob_source.get_data_to_file(blob_id, extension, temp_file)
+                self._blob_source.get_data_to_file(blob_ref, temp_file)
             except memdam.blobstore.api.MissingBlob:
                 #check that it exists at the destination at least:
-                assert self._blob_dest.exists(blob_id, extension), "Fail. Tried to synchronize blob %s for event %s but there is no data for it?" % (blob_id, work_id)
-            self._blob_dest.set_data_from_file(blob_id, extension, temp_file)
+                assert self._blob_dest.exists(blob_ref), "Fail. Tried to synchronize blob %s for event %s but there is no data for it?" % (blob_ref, work_id)
+            self._blob_dest.set_data_from_file(blob_ref, temp_file)
             os.remove(temp_file)
         self._event_dest.save([event])
         self._event_source.delete(event.id__id)
-        for field, blob_id, extension in event.blob_ids:
-            self._blob_source.delete(blob_id, extension)
+        for field, blob_ref in event.blob_ids:
+            self._blob_source.delete(blob_ref)
 
 class SyncManager(memdam.recorder.workmanager.Manager):
     def __init__(self, source, dest):

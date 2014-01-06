@@ -9,6 +9,7 @@ import nose.tools
 import memdam
 import memdam.common.utils
 import memdam.common.timeutils
+import memdam.common.blob
 import memdam.common.event
 import memdam.common.query
 import memdam.eventstore.sqlite
@@ -29,7 +30,6 @@ class SqliteBase(unittest.TestCase):
 
     def __init__(self, folder, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
-        self.blob_url = u"https://127.0.0.1/testcasepath"
         self.archive = memdam.eventstore.sqlite.Eventstore(folder)
         self.simple_event = memdam.common.event.new(
             NAMESPACE,
@@ -41,10 +41,11 @@ class SqliteBase(unittest.TestCase):
             b__text=u"string for searching",
             c__enum__country=u"USA",
             d__bool=True,
+            dd__bool=False,
             e__time=memdam.common.timeutils.now(),
             f__id=uuid.uuid4(),
             g__long=184467440737095516L,
-            h__file=self.blob_url + u"/" + uuid.uuid4().hex + u'.txt',
+            h__file=memdam.common.blob.BlobReference(uuid.uuid4(), u'txt'),
             i__namespace=u"some.thing",
             j__raw=buffer(uuid.uuid4().bytes),
         )
@@ -141,5 +142,5 @@ class LocalFileTest(SqliteBase):
 if __name__ == '__main__':
     tester = LocalFileTest()
     tester.setUp()
-    tester.test_save_multiple_times()
+    tester.test_save_all_data_types()
     tester.tearDown()

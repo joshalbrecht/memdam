@@ -18,20 +18,19 @@ class Blobstore(memdam.blobstore.api.Blobstore):
     def get_url_prefix(self):
         return "file://" + self._folder
 
-    def set_data_from_file(self, blob_id, extension, input_path):
-        path = self._get_path(blob_id, extension)
+    def set_data_from_file(self, blob_ref, input_path):
+        path = self._get_path(blob_ref)
         _make_folders(path)
         shutil.copyfile(input_path, path)
-        return self.get_url_prefix() + blob_id.hex + "." + extension
 
-    def get_data_to_file(self, blob_id, extension, output_path):
-        path = self._get_path(blob_id, extension)
+    def get_data_to_file(self, blob_ref, output_path):
+        path = self._get_path(blob_ref)
         if not os.path.exists(path):
             raise memdam.blobstore.api.MissingBlob()
         shutil.copyfile(path, output_path)
 
-    def delete(self, blob_id, extension):
-        path = self._get_path(blob_id, extension)
+    def delete(self, blob_ref):
+        path = self._get_path(blob_ref)
         try:
             os.remove(path)
         except OSError, e:
@@ -41,10 +40,10 @@ class Blobstore(memdam.blobstore.api.Blobstore):
             raise e
 
 
-    def exists(self, blob_id, extension):
-        return os.path.exists(self._get_path(blob_id, extension))
+    def exists(self, blob_ref):
+        return os.path.exists(self._get_path(blob_ref))
 
-    def _get_path(self, blob_id, extension):
+    def _get_path(self, blob_ref):
         """
         Use this to figure out where data is/should be stored for a blob.
 
@@ -61,9 +60,9 @@ class Blobstore(memdam.blobstore.api.Blobstore):
         :returns: the absolute path to where this data should be located
         :rtype: string
         """
-        hex_blob_id = blob_id.hex
+        hex_blob_id = blob_ref.id.hex
         mangled_blob_id = os.path.join(hex_blob_id[:2], hex_blob_id[2:4], hex_blob_id[4:])
-        return os.path.join(self._folder, mangled_blob_id + '.' + extension)
+        return os.path.join(self._folder, mangled_blob_id + '.' + blob_ref.extension)
 
 def _make_folders(path):
     """Create the subfolders in our directory"""

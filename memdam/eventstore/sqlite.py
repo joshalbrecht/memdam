@@ -302,6 +302,8 @@ def make_value_tuple(event, key_names, event_id):
             #convert UUIDs to byte representation
             elif memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.ID:
                 value = buffer(value.bytes)
+            elif memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.FILE:
+                value = value.name
         values.append(value)
     return values
 
@@ -332,6 +334,11 @@ def _create_event_from_row(row, names, namespace, conn):
                 value = cur.fetchall()[0][0]
             elif field_type == memdam.common.field.FieldType.ID:
                 value = uuid.UUID(bytes=value)
+            elif field_type == memdam.common.field.FieldType.BOOL:
+                value = value == 1
+            elif field_type == memdam.common.field.FieldType.FILE:
+                parsed_data = value.split('.')
+                value = memdam.common.blob.BlobReference(uuid.UUID(parsed_data[0]), parsed_data[1])
             data[name] = value
     data['type__namespace'] = namespace
     return memdam.common.event.Event(**data)

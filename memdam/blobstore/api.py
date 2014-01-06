@@ -19,51 +19,41 @@ class Blobstore(object):
         :rtype: string
         """
 
-    def set_data_from_file(self, blob_id, extension, input_path):
+    def set_data_from_file(self, blob_ref, input_path):
         """
         Save a file based on the raw data.
 
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
+        :param blob_ref: the unique identifier for the blob
+        :type  blob_ref: memdam.common.blob.BlobReference
         :param output_path: path with the data that should be written
         :type  output_path: string
-        :returns: the url associated with this file
-        :rtype: string
         """
 
-    def get_data_to_file(self, blob_id, extension, output_path):
+    def get_data_to_file(self, blob_ref, output_path):
         """
         Saves the raw data to a file of your choosing. You are responsible for making sure it gets
         deleted when you're done with it.
 
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
+        :param blob_ref: the unique identifier for the blob
+        :type  blob_ref: memdam.common.blob.BlobReference
         :param output_path: where the data should be written
         :type  output_path: string
         :raises: MissingBlob(if there is no data for this blob_id+extension)
         """
 
-    def delete(self, blob_id, extension):
+    def delete(self, blob_ref):
         """
         Ensure that the file with this blob id and extension is removed.
         Idempotent.
 
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
+        :param blob_ref: the unique identifier for the blob
+        :type  blob_ref: memdam.common.blob.BlobReference
         """
 
-    def exists(self, blob_id, extension):
+    def exists(self, blob_ref):
         """
-        :param blob_id: the unique identifier for the blob
-        :type  blob_id: uuid.UUID
-        :param extension: a lowercase file extension
-        :type  extension: string
+        :param blob_ref: the unique identifier for the blob
+        :type  blob_ref: memdam.common.blob.BlobReference
         :returns: True iff the blob currently exists
         :rtype: boolean
         """

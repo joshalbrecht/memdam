@@ -17,26 +17,24 @@ class Blobstore(memdam.blobstore.api.Blobstore):
     def get_url_prefix(self):
         return self._client.get_base_url() + "/blobs/"
 
-    def set_data_from_file(self, blob_id, extension, input_path):
+    def set_data_from_file(self, blob_ref, input_path):
         files = {'file': open(input_path, 'rb')}
-        extension = input_path.split('.')[-1].lower()
-        new_url = "/blobs/" + blob_id.hex + "." + extension
+        new_url = "/blobs/" + blob_ref.name
         self._client.request("PUT", new_url, files=files, headers={'Content-Type': None})
-        return self.get_url_prefix() + blob_id.hex + "." + extension
 
-    def get_data_to_file(self, blob_id, extension, output_path):
-        new_url = "/blobs/" + blob_id.hex + "." + extension
+    def get_data_to_file(self, blob_ref, output_path):
+        new_url = "/blobs/" + blob_ref.name
         response = self._client.request("GET", new_url, headers={'Accept': None, 'Content-Type': None})
         with open(output_path, 'wb') as outfile:
             outfile.write(response.content)
 
-    def delete(self, blob_id, extension):
-        url = "/blobs/" + blob_id.hex + "." + extension
+    def delete(self, blob_ref):
+        url = "/blobs/" + blob_ref.name
         self._client.request("DELETE", url)
 
     #TODO: lol this is inefficient. Requests the entire file. Should make something less stupid.
-    def exists(self, blob_id, extension):
-        new_url = "/blobs/" + blob_id.hex + "." + extension
+    def exists(self, blob_ref):
+        new_url = "/blobs/" + blob_ref.name
         try:
             self._client.request("GET", new_url, headers={'Accept': None, 'Content-Type': None})
         except requests.RequestException:

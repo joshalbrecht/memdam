@@ -1,7 +1,7 @@
 
 import re
-import base64
 import types
+import base64
 import datetime
 import uuid
 
@@ -10,9 +10,8 @@ from fn.monad import Option
 
 import memdam.common.timeutils
 import memdam.common.field
+import memdam.common.blob
 import memdam.common.validation
-
-SUPPORTED_URLS = ('file://', 'http://', 'https://')
 
 def new(namespace, **kwargs):
     """Convenience function for the creation of events"""
@@ -57,7 +56,6 @@ class Event(object):
     """
 
     def __init__(self, **kwargs):
-        #TODO: validate namespace
         #TODO: validate the types of all keys
         self.id__id = None
         self.time_time = None
@@ -74,10 +72,7 @@ class Event(object):
             if field_type == memdam.common.field.FieldType.LONG:
                 assert value < 18446744073709551616L
             if field_type == memdam.common.field.FieldType.FILE:
-                lowered = value.lower()
-                assert len([True for url_type in SUPPORTED_URLS if lowered.startswith(url_type)]) > 0, "All file variables must use one of the following url schemes: " + SUPPORTED_URLS
-                assert '/' in lowered, "must use absolute file urls for file type variables"
-                assert memdam.common.validation.BLOB_FILE_NAME_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
+                assert isinstance(value, memdam.common.blob.BlobReference)
             assert isinstance(key, unicode)
             if field_type != memdam.common.field.FieldType.RAW and isinstance(value, basestring):
                 assert isinstance(value, unicode)
@@ -97,34 +92,12 @@ class Event(object):
         """
         return getattr(self, key)
 
-    def get_file_data(self, key):
-        """
-        :param key: a key from self.keys
-        :type  key: string
-        :returns: a tuple with detailed data about the file field: (blob_id, extension)
-        :rtype: (uuid.UUID, string)
-        """
-        url = self.get_field(key)
-        filename = url.split('/')[-1]
-        data = filename.split('.')
-        return (uuid.UUID(data[0]), data[1])
-
     @property
     def blob_ids(self):
         """
-        :returns: a list of (field_name, blob_id, extension) tuples, one per file field
+        :returns: a list of (field_name, blob_ref) tuples, one per file field
         """
-        return [(key,) + self.get_file_data(key) for key in self.keys if Event.field_type(key) == memdam.common.field.FieldType.FILE]
-
-    def has_file(self):
-        """
-        :returns: True iff any of the keys contain binary data, False otherwise
-        :rtype: bool
-        """
-        for key in self.keys:
-            if Event.field_type(key) == memdam.common.field.FieldType.FILE:
-                return True
-        return False
+        return [(key, self.get_field(key)) for key in self.keys if Event.field_type(key) == memdam.common.field.FieldType.FILE]
 
     def to_json_dict(self):
         """
@@ -139,6 +112,8 @@ class Event(object):
                 value = value.hex
             elif isinstance(value, buffer):
                 value = base64.b64encode(value)
+            elif isinstance(value, memdam.common.blob.BlobReference):
+                value = value.to_json()
             if isinstance(value, basestring):
                 value = unicode(value)
             new_dict[key] = value
@@ -227,11 +202,15 @@ class Event(object):
                 data[key] = uuid.UUID(data[key])
             elif field_type == memdam.common.field.FieldType.RAW:
                 data[key] = buffer(base64.b64decode(data[key]))
+            elif field_type == memdam.common.field.FieldType.FILE:
+                data[key] = memdam.common.blob.BlobReference.from_json(data[key])
         return Event(**data)
 
 def _make_hash_key(data):
     """recursively make a bunch of tuples out of a dict for stable hashing"""
-    if hasattr(data, '__iter__'):
+    if isinstance(data, types.TupleType):
+        return data
+    elif hasattr(data, '__iter__'):
         sorted_keys = sorted([x for x in data])
         return ((key, _make_hash_key(data[key])) for key in sorted_keys)
     return data

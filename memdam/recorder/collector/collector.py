@@ -82,7 +82,7 @@ class Collector(object):
         self.post_collect()
 
     def _save_file(self, file_path, blobstore, consume_file=False, generate_id=True):
-        folder, file_name = os.path.split(file_path)
+        _, file_name = os.path.split(file_path)
         if generate_id == False:
             assert memdam.common.validation.BLOB_FILE_NAME_REGEX.match(file_name), "file name must be a hex encoded uuid with extension"
         if (generate_id == None and memdam.common.validation.BLOB_FILE_NAME_REGEX.match(file_name)) or generate_id == False:
@@ -90,30 +90,31 @@ class Collector(object):
         else:
             blob_id = uuid.uuid4()
         extension = file_name.split('.')[-1].lower()
-        result = blobstore.set_data_from_file(blob_id, extension, file_path)
+        blob_ref = memdam.common.blob.BlobReference(blob_id, extension)
+        blobstore.set_data_from_file(blob_ref, file_path)
         if consume_file:
             os.remove(file_path)
-        return result
+        return blob_ref
 
-def _save_files_in_event(event, blobstore):
-    """
-    Convert any Event into one that ONLY has files on the server where we are about to create
-    this Event by sending each of the files as blobs to the server.
-
-    :param event: the event in which to look for files
-    :type  event: memdam.common.event.Event
-    :returns: a new Event, with the same id, and all __file attributes pointing to paths on
-        self._server_url
-    :rtype: memdam.common.event.Event
-    """
-    new_event_dict = {}
-    for key in event.keys:
-        value = event.get_field(key)
-        if memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.FILE:
-            if not value.startswith(blobstore.get_url_prefix()):
-                blob_id, extension = event.get_file_data(key)
-                assert value.startswith("file://"), "Can only work with events based on local files right now"
-                path = value[len("file://")]
-                value = blobstore.set_data_from_file(blob_id, extension, path)
-        new_event_dict[key] = value
-    return memdam.common.event.Event(**new_event_dict)
+#def _save_files_in_event(event, blobstore):
+#    """
+#    Convert any Event into one that ONLY has files on the server where we are about to create
+#    this Event by sending each of the files as blobs to the server.
+#
+#    :param event: the event in which to look for files
+#    :type  event: memdam.common.event.Event
+#    :returns: a new Event, with the same id, and all __file attributes pointing to paths on
+#        self._server_url
+#    :rtype: memdam.common.event.Event
+#    """
+#    new_event_dict = {}
+#    for key in event.keys:
+#        value = event.get_field(key)
+#        if memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.FILE:
+#            if not value.startswith(blobstore.get_url_prefix()):
+#                blob_ref = event.get_file_data(key)
+#                assert value.startswith("file://"), "Can only work with events based on local files right now"
+#                path = value[len("file://")]
+#                value = blobstore.set_data_from_file(blob_ref, path)
+#        new_event_dict[key] = value
+#    return memdam.common.event.Event(**new_event_dict)

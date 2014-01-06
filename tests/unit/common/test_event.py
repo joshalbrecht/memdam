@@ -5,6 +5,7 @@ import uuid
 import nose.tools
 
 import memdam.common.timeutils
+import memdam.common.blob
 import memdam.common.event
 
 def test_serialization():
@@ -19,7 +20,7 @@ def test_serialization():
         e__time=memdam.common.timeutils.now(),
         f__id=uuid.uuid4(),
         g__long=184467440737095516L,
-        h__file=u"http://somewhere.com/blobs/" + uuid.uuid4().hex + '.txt',
+        h__file=memdam.common.blob.BlobReference(uuid.uuid4(), u"txt"),
         i__namespace=u"some.thing",
         j__raw=buffer(uuid.uuid4().bytes)
         )

@@ -21,11 +21,11 @@ class TestCollector(memdam.recorder.collector.collector.Collector):
         file_path = memdam.common.utils.make_temp_path()
         with open(file_path, 'wb') as outfile:
             outfile.write("some random data")
-        file_url_a = self._save_file(file_path, blobstore, consume_file=False)
-        file_url_b = self._save_file(file_path, blobstore, consume_file=True)
+        blob_ref_a = self._save_file(file_path, blobstore, consume_file=False)
+        blob_ref_b = self._save_file(file_path, blobstore, consume_file=True)
         TestCollector.events = [
-            memdam.common.event.new(NAMESPACE, text__raw=u"mime and garbage", attachment_one__file=file_url_a, to__text=u"thejash,someguy,etc"),
-            memdam.common.event.new(NAMESPACE, text__raw=u"blah blah whatever", attachment_one__file=file_url_b, attachment_two__file=file_url_a, to__text=u"someoneelse")
+            memdam.common.event.new(NAMESPACE, text__raw=u"mime and garbage", attachment_one__file=blob_ref_a, to__text=u"thejash,someguy,etc"),
+            memdam.common.event.new(NAMESPACE, text__raw=u"blah blah whatever", attachment_one__file=blob_ref_b, attachment_two__file=blob_ref_a, to__text=u"someoneelse")
         ]
         return TestCollector.events
 
