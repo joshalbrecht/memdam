@@ -1,5 +1,4 @@
 
-import re
 import types
 import base64
 import datetime
@@ -69,13 +68,7 @@ class Event(object):
             assert base_name not in base_names, "Duplicated key: " + base_name
             base_names.add(base_name)
             field_type = Event.field_type(key)
-            if field_type == memdam.common.field.FieldType.LONG:
-                assert value < 18446744073709551616L
-            if field_type == memdam.common.field.FieldType.FILE:
-                assert isinstance(value, memdam.common.blob.BlobReference)
-            assert isinstance(key, unicode)
-            if field_type != memdam.common.field.FieldType.RAW and isinstance(value, basestring):
-                assert isinstance(value, unicode)
+            Event.validate(value, field_type)
             assert key == key.lower()
             setattr(self, key, value)
             self.keys.add(key)
@@ -205,6 +198,28 @@ class Event(object):
             elif field_type == memdam.common.field.FieldType.FILE:
                 data[key] = memdam.common.blob.BlobReference.from_json(data[key])
         return Event(**data)
+
+    @staticmethod
+    def validate(value, field_type):
+        if field_type == memdam.common.field.FieldType.NUMBER:
+            assert isinstance(value, types.FloatType)
+        elif field_type in (memdam.common.field.FieldType.STRING, memdam.common.field.FieldType.TEXT, memdam.common.field.FieldType.ENUM):
+            assert isinstance(value, unicode)
+        elif field_type == memdam.common.field.FieldType.RAW:
+            assert isinstance(value, types.BufferType)
+        elif field_type == memdam.common.field.FieldType.BOOL:
+            assert isinstance(value, types.BooleanType)
+        elif field_type == memdam.common.field.FieldType.TIME:
+            assert isinstance(value, datetime.datetime)
+        elif field_type == memdam.common.field.FieldType.ID:
+            assert isinstance(value, uuid.UUID)
+        elif field_type == memdam.common.field.FieldType.LONG:
+            assert value < 18446744073709551616L
+        elif field_type == memdam.common.field.FieldType.FILE:
+            assert isinstance(value, memdam.common.blob.BlobReference)
+        elif field_type == memdam.common.field.FieldType.NAMESPACE:
+            assert isinstance(value, unicode)
+            assert memdam.common.validation.NAMESPACE_REGEX.match(value)
 
 def _make_hash_key(data):
     """recursively make a bunch of tuples out of a dict for stable hashing"""

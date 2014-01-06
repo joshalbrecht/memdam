@@ -1,6 +1,4 @@
 
-convert files to be string UUID/ext pairs in python (namedtuple), and urls in json (pass in base URL in to_json_dict)
-validate all types for events
 fix integration tests
 check test coverage
 make screenshot collector
@@ -28,7 +26,6 @@ finish CICD implementation (pushing to master does everything)
     probably the same for tests (all have to pass locally before push succeeds)
     in that case...
     anyway, think about it
-
 
 future (cleanup)
     pylint fixes
