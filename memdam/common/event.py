@@ -38,15 +38,15 @@ class Event(object):
     All other parameters are dynamic, and follow the form:
     ^(?P=name)__(?P=type)(__(?P=secondary_type))?$
 
-    Where all named groups match:
-    ^([a-z]+_)*[a-z]+$
+    Where all named groups start with a-z, are all lower case, and may contain any of a-z0-9_ but
+    may not contain more than 1 _ in a row
 
     The `name` group is the actual name of the attribute.
-    Two attributes may have the same name, but they must have a different type and/or secondary_name.
+    Two attributes may not have the same name, even if they must have a different type and/or secondary_name.
 
     The `type` group refers to a fixed set of acceptable data types.
     All attributes must have one defined.
-    See `memdam.common.field.FieldType` above for the list of acceptable values (will be lowercased here).
+    See `memdam.common.field.FieldType` for the list of acceptable values (will be lowercased here).
     See the json event-schema for further details on each type.
 
     The `secondary_type` is optional, and will only ever be defined for NUMBER or STRING types.
@@ -57,18 +57,19 @@ class Event(object):
     """
 
     def __init__(self, **kwargs):
-        #TODO: events should be immutable
-        #TODO: validate all keys (allowable characters, correct type, no overlap with top level, etc)
+        #TODO: validate namespace
+        #TODO: validate the types of all keys
         self.id__id = None
         self.time_time = None
         self.keys = set()
+        base_names = set()
         for key, value in kwargs.items():
             key = unicode(key)
             assert value != None, "Can not set attributes to None. If you want to, simply leave it off."
-            #validate that the argument names and types conform to the above specification.
-            if not memdam.common.validation.EVENT_FIELD_REGEX.match(key):
-                x = 4
             assert memdam.common.validation.EVENT_FIELD_REGEX.match(key), "Field %s contains something besides a-z_" % (key)
+            base_name = key.split('__')[0]
+            assert base_name not in base_names, "Duplicated key: " + base_name
+            base_names.add(base_name)
             field_type = Event.field_type(key)
             if field_type == memdam.common.field.FieldType.LONG:
                 assert value < 18446744073709551616L
@@ -77,14 +78,16 @@ class Event(object):
                 assert len([True for url_type in SUPPORTED_URLS if lowered.startswith(url_type)]) > 0, "All file variables must use one of the following url schemes: " + SUPPORTED_URLS
                 assert '/' in lowered, "must use absolute file urls for file type variables"
                 assert memdam.common.validation.BLOB_FILE_NAME_REGEX.match(lowered.split('/')[-1]), "file names must be of the form hexuuid.extension"
+            assert isinstance(key, unicode)
             if isinstance(value, basestring):
-                value = unicode(value)
+                assert isinstance(value, unicode)
             assert key == key.lower()
             setattr(self, key, value)
             self.keys.add(key)
         assert hasattr(self, 'id__id')
         assert hasattr(self, 'time__time')
         assert hasattr(self, 'type__namespace')
+        self._init_finished = True
 
     def get_field(self, key):
         """
@@ -146,6 +149,13 @@ class Event(object):
 
     def __hash__(self):
         return hash(tuple(_make_hash_key(self.to_json_dict())))
+
+    def __setattr__(self, name, value):
+        assert not getattr(self, '_init_finished', False), "Events are immutable."
+        object.__setattr__(self, name, value)
+
+    def __delattr__(self, name):
+        assert False, "Events are immutable."
 
     @property
     def time(self):

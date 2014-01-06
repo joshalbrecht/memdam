@@ -1,7 +1,7 @@
 
-test that event fields with numbers are allowable now
-consolidate validation logic
-fix all unit tests
+fix code to work with everything as unicode
+convert files to be string UUID/ext pairs in python (namedtuple), and urls in json (pass in base URL in to_json_dict)
+validate all types for events
 fix integration tests
 check test coverage
 make screenshot collector
@@ -15,6 +15,8 @@ deployment scripts
     continuous deployment and continuous integration:
         if we START this way and just keep it like this, it will be a lot easier
         also do this for updates to client software
+        probably use circleci
+            and eventually send an email thanking that guy :)
     ssl: http://flask.pocoo.org/snippets/111/
     setup dns for joshalbrecht.chronographr.com
     remember to fix logging in wsgi context:
@@ -22,11 +24,8 @@ deployment scripts
         also remember that memdam.common.parallel may not work in that context... (should test and at least warn)
 
 future (cleanup)
-    clean up file attributes:
-        in python, should be strictly the UUID
-        in json, should be the absolute URL to get to them
-        call to_json_dict, and have to pass in the base URL for the blobs
-    let's remove the multi-file (one per namespace) mode? it can still be in different tables, but multi file makes transactions horrible
+    pylint fixes
+    update docs everywhere
     search for and minimize TODOs:
         only use TODOs for functionality that is incomplete, and in those cases, just raise NotImplementedError in most cases instead
         for features, put them here instead

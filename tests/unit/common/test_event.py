@@ -30,10 +30,15 @@ def test_serialization():
     nose.tools.eq_(new_event, event)
 
 @nose.tools.raises(AssertionError)
+def test_immutable():
+    """Events should be immutable"""
+    event = memdam.common.event.new("some.data.type", temp__long=2**64)
+    event.whatever = 15
+
+@nose.tools.raises(AssertionError)
 def test_max_long():
     """Should throw an AssertionError if a long attr is >= 2**64"""
-    memdam.common.event.new("some.data.type",
-                              temp__long=2**64)
+    memdam.common.event.new("some.data.type", temp__long=2**64)
 
 if __name__ == '__main__':
     test_serialization()
