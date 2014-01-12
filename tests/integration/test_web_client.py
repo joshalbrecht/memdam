@@ -1,4 +1,7 @@
 
+import shutil
+import os
+import tempfile
 import uuid
 import time
 import multiprocessing
@@ -50,7 +53,13 @@ def test_save_and_get_event_with_file():
 
 def start_server():
     """Starts up a web server and returns the process"""
-    process = multiprocessing.Process(target=memdam.server.web_server.run)
+    #TODO: refactor into a function that other integration tests can use
+    database_folder = os.path.join(tempfile.gettempdir(), "test_web_client")
+    if os.path.exists(database_folder):
+        shutil.rmtree(database_folder)
+    os.makedirs(database_folder)
+    config_kwargs = dict(DATABASE_FOLDER=database_folder)
+    process = multiprocessing.Process(target=memdam.server.web_server.run, kwargs=config_kwargs)
     process.start()
     time.sleep(1.0)
     return process

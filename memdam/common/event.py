@@ -55,7 +55,6 @@ class Event(object):
     """
 
     def __init__(self, **kwargs):
-        #TODO: validate the types of all keys
         self.id__id = None
         self.time_time = None
         self.keys = set()
@@ -69,12 +68,11 @@ class Event(object):
             base_names.add(base_name)
             field_type = Event.field_type(key)
             Event.validate(value, field_type)
-            assert key == key.lower()
             setattr(self, key, value)
             self.keys.add(key)
-        assert hasattr(self, 'id__id')
-        assert hasattr(self, 'time__time')
-        assert hasattr(self, 'type__namespace')
+        self.id__id = getattr(self, 'id__id')
+        self.time__time = getattr(self, 'time__time')
+        self.type__namespace = getattr(self, 'type__namespace')
         self._init_finished = True
 
     def get_field(self, key):
@@ -197,29 +195,52 @@ class Event(object):
                 data[key] = buffer(base64.b64decode(data[key]))
             elif field_type == memdam.common.field.FieldType.FILE:
                 data[key] = memdam.common.blob.BlobReference.from_json(data[key])
+        # pylint: disable=W0142
         return Event(**data)
 
     @staticmethod
     def validate(value, field_type):
+        """
+        :param value: the value to assign to one of our fields
+        :type  value: any
+        :param field_type: the type of field that this value is supposed to be assigned to
+        :type  field_type: memdam.common.field.FieldType
+        :raises: AssertionError(if value is not the appropriate type for field_type)
+        """
         if field_type == memdam.common.field.FieldType.NUMBER:
-            assert isinstance(value, types.FloatType)
+            assert isinstance(value, types.FloatType), \
+            "Float values must be instances of float: %s is a %s" % (value, type(value))
         elif field_type in (memdam.common.field.FieldType.STRING, memdam.common.field.FieldType.TEXT, memdam.common.field.FieldType.ENUM):
-            assert isinstance(value, unicode)
+            assert isinstance(value, unicode), \
+            "%s values must be instances of unicode: %s is a %s" % \
+            (memdam.common.field.FieldType.names[field_type], value, type(value))
         elif field_type == memdam.common.field.FieldType.RAW:
-            assert isinstance(value, types.BufferType)
+            assert isinstance(value, types.BufferType), \
+            "Raw values must be instances of buffer: %s is a %s" % (value, type(value))
         elif field_type == memdam.common.field.FieldType.BOOL:
-            assert isinstance(value, types.BooleanType)
+            assert isinstance(value, types.BooleanType), \
+            "Boolean values must be either True or False: %s is a %s" % (value, type(value))
         elif field_type == memdam.common.field.FieldType.TIME:
-            assert isinstance(value, datetime.datetime)
+            assert isinstance(value, datetime.datetime), \
+            "Time values must be instances of datetime.datetime: %s is a %s" % (value, type(value))
         elif field_type == memdam.common.field.FieldType.ID:
-            assert isinstance(value, uuid.UUID)
+            assert isinstance(value, uuid.UUID), \
+            "Id values must be instances of uuid.UUID: %s is a %s" % (value, type(value))
         elif field_type == memdam.common.field.FieldType.LONG:
-            assert value < 18446744073709551616L
+            try:
+                value = long(value)
+            except ValueError:
+                assert False, "Not a long: %s" % (value)
+            assert value < 2L ** 63, \
+            "Long values must not be larger than 2^63 because of sqlite: %s" % (value)
         elif field_type == memdam.common.field.FieldType.FILE:
-            assert isinstance(value, memdam.common.blob.BlobReference)
+            assert isinstance(value, memdam.common.blob.BlobReference), \
+            "Files should be BlobReference's, %s was %s" % (value, type(value))
         elif field_type == memdam.common.field.FieldType.NAMESPACE:
-            assert isinstance(value, unicode)
-            assert memdam.common.validation.NAMESPACE_REGEX.match(value)
+            assert isinstance(value, unicode), \
+            "Namespaces should be unicode, %s was %s" % (value, type(value))
+            assert memdam.common.validation.NAMESPACE_REGEX.match(value), \
+            "Namespace %s did not match %s" % (value, memdam.common.validation.NAMESPACE_PATTERN)
 
 def _make_hash_key(data):
     """recursively make a bunch of tuples out of a dict for stable hashing"""

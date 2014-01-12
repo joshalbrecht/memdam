@@ -14,7 +14,7 @@ def get_archive():
     archive = getattr(flask.g, '_archive', None)
     if archive is None:
         db_file = app.config['DATABASE_FOLDER']
-        if db_file != ":memory:":
+        if db_file != ':memory:' and db_file != '':
             if not os.path.exists(db_file):
                 os.makedirs(db_file)
         archive = flask.g._archive = memdam.eventstore.sqlite.Eventstore(db_file)

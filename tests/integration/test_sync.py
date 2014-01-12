@@ -14,7 +14,7 @@ import memdam.eventstore.sqlite
 import memdam.recorder.collector.collector
 import memdam.recorder.sync
 
-NAMESPACE = "test.namespace"
+NAMESPACE = u"test.namespace"
 
 class TestCollector(memdam.recorder.collector.collector.Collector):
     def collect(self, blobstore, limit):
@@ -24,8 +24,8 @@ class TestCollector(memdam.recorder.collector.collector.Collector):
         blob_ref_a = self._save_file(file_path, blobstore, consume_file=False)
         blob_ref_b = self._save_file(file_path, blobstore, consume_file=True)
         TestCollector.events = [
-            memdam.common.event.new(NAMESPACE, text__raw=u"mime and garbage", attachment_one__file=blob_ref_a, to__text=u"thejash,someguy,etc"),
-            memdam.common.event.new(NAMESPACE, text__raw=u"blah blah whatever", attachment_one__file=blob_ref_b, attachment_two__file=blob_ref_a, to__text=u"someoneelse")
+            memdam.common.event.new(NAMESPACE, text__raw=buffer("mime and garbage"), attachment_one__file=blob_ref_a, to__text=u"thejash,someguy,etc"),
+            memdam.common.event.new(NAMESPACE, text__raw=buffer("blah blah whatever"), attachment_one__file=blob_ref_b, attachment_two__file=blob_ref_a, to__text=u"someoneelse")
         ]
         return TestCollector.events
 
