@@ -152,7 +152,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         assert self.folder == ":memory:"
         #TODO: when all tests are passing again, do we need memory_connection at all? I don't think so...
         if self.memory_connection == None:
-            self.memory_connection = sqlite3.connect(self.folder, isolation_level="EXCLUSIVE")
+            self.memory_connection = sqlite3.connect("file::memory:?cache=shared", isolation_level="EXCLUSIVE")
         return self.memory_connection
 
     def _connect(self, table_name, read_only=True):

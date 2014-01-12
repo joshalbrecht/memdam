@@ -7,10 +7,8 @@ import multiprocessing
 
 import memdam.common.timeutils
 import memdam.common.query
-import memdam.recorder.message
 import memdam.recorder.main
 import memdam.eventstore.sqlite
-import memdam.server.email_data_handler
 
 DEVICE = "somedevice"
 SMTP_ADDRESS = ('127.0.0.1', 8465)

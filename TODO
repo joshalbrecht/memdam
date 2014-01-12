@@ -5,7 +5,9 @@ make screenshot collector
     really, new file collector.
     just takes a folder where files appear, and uploads them with some particular settings (namespace, etc), possibly deleting as you go
     heh...  which is also the more general case of "file watcher", uploading only on new file (not on modification or deletion)
-check test coverage specifically for unit tests
+create configuration and UI code
+    remember the connector design pattern (so that this can stay easy to test and automate)
+check test coverage specifically for unit tests: nosetests --with-coverage --cover-package=memdam tests/unit/
 add separate tests for blobstore
 make collector run on windows
 decide how to deploy server
