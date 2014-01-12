@@ -12,6 +12,7 @@ import memdam.common.event
 import memdam.common.timeutils
 import memdam.common.parallel
 import memdam.common.error
+import memdam.common.client
 import memdam.blobstore.localfolder
 import memdam.blobstore.https
 import memdam.eventstore.sqlite
@@ -20,12 +21,15 @@ import memdam.recorder.config
 import memdam.recorder.collector.collector
 import memdam.recorder.sync
 
+#TODO: probably shouldn't do this, needed config
+import memdam.server.web.urls
+
 class SystemStats(memdam.recorder.collector.collector.Collector):
     """
     A simple collector for statistics like CPU usage, memory usage, I/O events, etc
     """
 
-    def collect(self):
+    def collect(self, blobstore, limit):
         return [memdam.common.event.new(u"com.memdam.cpu", cpu__number__percent=0.2)]
 
 def main():
@@ -44,6 +48,13 @@ def main():
     #create both local and remote blob and event stores
     local_blob_folder = os.path.join(local_folder, "blobs")
     local_event_folder = os.path.join(local_folder, "events")
+    #TODO: remember to clear these for testing probably...
+    for folder in (local_event_folder, local_blob_folder):
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+    username = memdam.server.web.urls.app.config["USERNAME"]
+    password = memdam.server.web.urls.app.config["PASSWORD"]
+    server_url = "http://127.0.0.1:5000/api/v1/"
     client = memdam.common.client.MemdamClient(server_url, username, password)
     local_blobs = memdam.blobstore.localfolder.Blobstore(local_blob_folder)
     remote_blobs = memdam.blobstore.https.Blobstore(client)
