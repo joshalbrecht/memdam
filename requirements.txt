@@ -6,7 +6,7 @@ MarkupSafe==0.15
 PyYAML==3.10
 Werkzeug==0.9.4
 fn==0.2.12
-httplib2==0.7.2
+httplib2==0.7.3
 ipython==1.1.0
 nose==1.3.0
 pylint==1.0.0

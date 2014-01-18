@@ -180,20 +180,25 @@ class Eventstore(memdam.eventstore.api.Eventstore):
             return
         assert SqliteColumn.SQL_NAME_REGEX.match(table_name), "Invalid name for table: %s" % (table_name)
         conn = self._connect(table_name, read_only=False)
+        def update_columns():
+            cur = conn.cursor()
+            existing_columns = self._query_existing_columns(cur, table_name)
+            key_names = set()
+            for event in events:
+                for key in event.keys:
+                    key_names.add(key)
+            #certain key names are ignored because they are stored implicity in the location of
+            #this database (user, namespace)
+            for reserved_name in ("type__namespace", "user__id"):
+                if reserved_name in key_names:
+                    key_names.remove(reserved_name)
+            required_columns = self._generate_columns(cur, key_names, table_name)
+            self._update_columns(cur, existing_columns, required_columns)
+            return key_names
+        key_names = execute_with_retries(update_columns, 5)
+        
         cur = conn.cursor()
         cur.execute("BEGIN EXCLUSIVE")
-        existing_columns = self._query_existing_columns(cur, table_name)
-        key_names = set()
-        for event in events:
-            for key in event.keys:
-                key_names.add(key)
-        #certain key names are ignored because they are stored implicity in the location of
-        #this database (user, namespace)
-        for reserved_name in ("type__namespace", "user__id"):
-            if reserved_name in key_names:
-                key_names.remove(reserved_name)
-        required_columns = self._generate_columns(cur, key_names, table_name)
-        self._update_columns(cur, existing_columns, required_columns)
         self._insert_events(cur, events, key_names, table_name)
         conn.commit()
 
@@ -437,3 +442,21 @@ class SqliteColumn(object):
         """
         column_name = row[1]
         return SqliteColumn(column_name, table_name)
+
+def execute_with_retries(command, num_retries=3, retry_wait_time=0.1, retry_growth_rate=2.0):
+    """
+    Try to accomplish the command a few times before giving up.
+    """
+    retry = 0
+    last_exception = None
+    while retry < num_retries:
+        try:
+            return command()
+        except Exception, e:
+            last_exception = e
+            time.sleep(retry_wait_time)
+            retry_wait_time *= retry_growth_rate
+        else:
+            break
+        retry += 1
+    raise last_exception
