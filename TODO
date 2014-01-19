@@ -1,14 +1,29 @@
 
-fix integration tests
-check test coverage
+deploy server to remote small server
+    use cherry py probably (or see notes file)
+make cpu usage collector (or something similarly simple and reliable)
+test that running the collector sends events to the server
+use pyinstaller to make installer
+test that installed version sends events to the server
 make screenshot collector
-    really, new file collector.
-    just takes a folder where files appear, and uploads them with some particular settings (namespace, etc), possibly deleting as you go
-    heh...  which is also the more general case of "file watcher", uploading only on new file (not on modification or deletion)
-create configuration and UI code
-    remember the connector design pattern (so that this can stay easy to test and automate)
+test that installer works
+test that installed version sends events to the server
+make configuration dictionary for everything that was hard coded
+watch configuration for changes
+make app prompt for configuration on first startup
+use rumps to make tray on osx with these options:
+    preferences (open file in an editor)
+    pause/resume
+    quit
+test installer
+test that installed version works
+send to justin
+
+future:
 check test coverage specifically for unit tests: nosetests --with-coverage --cover-package=memdam tests/unit/
 add separate tests for blobstore
+add logging
+add error reporting
 make collector run on windows
 decide how to deploy server
     ssl: http://flask.pocoo.org/snippets/111/
@@ -49,6 +64,11 @@ query sqlite tests
 query web tests
 query client integration tests
 
+future (UI)
+use pyqt probably
+
 future (deployment)
+add ability for updates
+    eventually, not now
 encrypt blobs and store in S3 with a policy to archive to glacier (nice and cheap, recent data is accessible, distant data can still be accessed but is more costly)
     benefit is that MUCH less needs to be stored on the server drive (only the actual event data, which is MUCH smaller)
