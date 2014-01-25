@@ -1,26 +1,27 @@
 
-deploy server to remote small server
-    use cherry py probably (or see notes file)
+run server in non-debug mode locally
+    use cherry py or see notes
+start small server
+make script to set up server and deploy project
 make cpu usage collector (or something similarly simple and reliable)
 test that running the collector sends events to the server
-use pyinstaller to make installer
-test that installed version sends events to the server
-make screenshot collector
-test that installer works
+
+integrate screenshot and webcam code into memdam
 test that installed version sends events to the server
 make configuration dictionary for everything that was hard coded
 watch configuration for changes
 make app prompt for configuration on first startup
-use rumps to make tray on osx with these options:
+make menu items actually work
     preferences (open file in an editor)
     pause/resume
     quit
-test installer
 test that installed version works
 send to justin
 
 future:
-check test coverage specifically for unit tests: nosetests --with-coverage --cover-package=memdam tests/unit/
+add https:
+    http://www.zacwitte.com/using-ssl-https-with-cherrypy-3-2-0-example
+    http://cemremengu.wordpress.com/2012/11/27/setting-up-an-https-ssl-server-using-cherrypy/
 add separate tests for blobstore
 add logging
 add error reporting
@@ -31,6 +32,9 @@ decide how to deploy server
     remember to fix logging in wsgi context:
         can use this if necessary: flask.current_app.logger.info('grolsh')
         also remember that memdam.common.parallel may not work in that context... (should test and at least warn)
+rename to chronographer
+possibly adapt to using pyinstaller instead of py2app
+check test coverage specifically for unit tests: nosetests --with-coverage --cover-package=memdam tests/unit/
 design continuous deployment and integration process
     probably use circleci
         and eventually send an email thanking that guy :)
