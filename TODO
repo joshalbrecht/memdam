@@ -1,11 +1,11 @@
 
-make script to set up server and deploy project
-start small server
-deploy to server
-test that running the collector sends events to the server
-
 integrate screenshot and webcam code into memdam
 test that installed version sends events to the server
+test that we can look at the actual events in some sensible way
+send to justin (can just start and stop the whole thing manually for now)
+restart server and delete data
+
+future:
 make configuration dictionary for everything that was hard coded
 watch configuration for changes
 make app prompt for configuration on first startup
@@ -14,10 +14,6 @@ make menu items actually work
     pause/resume
     quit
 test that installed version works
-test that we can look at the actual events in some sensible way
-send to justin
-
-future:
 add https:
     http://www.zacwitte.com/using-ssl-https-with-cherrypy-3-2-0-example
     http://cemremengu.wordpress.com/2012/11/27/setting-up-an-https-ssl-server-using-cherrypy/
