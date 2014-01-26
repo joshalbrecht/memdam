@@ -58,6 +58,10 @@ def run_as_script():
                         help='if true, runs wsgi server for production, if false, runs in debug')
     parser.add_argument('--config', dest='CONFIG_FILE', type=str,
                         help='the path to a file with additional configuration')
+    parser.add_argument('--db', dest='DATABASE_FOLDER', type=str,
+                        help='the folder where the databases should be stored')
+    parser.add_argument('--blobs', dest='BLOBSTORE_FOLDER', type=str,
+                        help='the folder where the blobs should be stored')
     args = parser.parse_args()
     defined_args = select(lambda (k, v): v != None, vars(args))
     run(**defined_args)

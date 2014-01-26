@@ -54,7 +54,7 @@ def main():
             os.makedirs(folder)
     username = memdam.server.web.urls.app.config["USERNAME"]
     password = memdam.server.web.urls.app.config["PASSWORD"]
-    server_url = "http://127.0.0.1:5000/api/v1/"
+    server_url = "http://ec2-54-201-240-100.us-west-2.compute.amazonaws.com:5000/api/v1/"
     client = memdam.common.client.MemdamClient(server_url, username, password)
     local_blobs = memdam.blobstore.localfolder.Blobstore(local_blob_folder)
     remote_blobs = memdam.blobstore.https.Blobstore(client)
