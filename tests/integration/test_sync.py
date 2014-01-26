@@ -17,12 +17,13 @@ import memdam.recorder.sync
 NAMESPACE = u"test.namespace"
 
 class TestCollector(memdam.recorder.collector.collector.Collector):
-    def collect(self, blobstore, limit):
+    """Just saves some bytes to a file for testing"""
+    def _collect(self, limit):
         file_path = memdam.common.utils.make_temp_path()
         with open(file_path, 'wb') as outfile:
             outfile.write("some random data")
-        blob_ref_a = self._save_file(file_path, blobstore, consume_file=False)
-        blob_ref_b = self._save_file(file_path, blobstore, consume_file=True)
+        blob_ref_a = self._save_file(file_path, consume_file=False)
+        blob_ref_b = self._save_file(file_path, consume_file=True)
         TestCollector.events = [
             memdam.common.event.new(NAMESPACE, text__raw=buffer("mime and garbage"), attachment_one__file=blob_ref_a, to__text=u"thejash,someguy,etc"),
             memdam.common.event.new(NAMESPACE, text__raw=buffer("blah blah whatever"), attachment_one__file=blob_ref_b, attachment_two__file=blob_ref_a, to__text=u"someoneelse")
@@ -45,11 +46,11 @@ def test_sync():
     os.mkdir(blob_dest_folder)
     blob_source = memdam.blobstore.localfolder.Blobstore(blob_source_folder)
     blob_dest = memdam.blobstore.localfolder.Blobstore(blob_dest_folder)
-    collector = TestCollector()
+    collector = TestCollector(eventstore=event_source, blobstore=blob_source)
     synchronizer = memdam.recorder.sync.Synchronizer(event_source, event_dest, blob_source, blob_dest)
     synchronizer.start()
     time.sleep(1.0)
-    collector.collect_and_persist(event_source, blob_source)
+    collector.collect_and_persist(10)
     time.sleep(10.0)
     synchronizer.stop()
     #check that there are no events or blobs in the source stores

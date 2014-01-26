@@ -44,7 +44,7 @@ def _check_logging(log_name):
     for process in processes:
         process.join()
         nose.tools.eq_(process.exitcode, 0)
-    time.sleep(1.0) #must wait for the logging thread to catch up
+    time.sleep(2.0) #must wait for the logging thread to catch up
     nose.tools.eq_(len(message_counter.messages), 5+6+8)
 
 def _print_some_statements(num):

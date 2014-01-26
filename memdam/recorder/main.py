@@ -29,7 +29,7 @@ class SystemStats(memdam.recorder.collector.collector.Collector):
     A simple collector for statistics like CPU usage, memory usage, I/O events, etc
     """
 
-    def collect(self, blobstore, limit):
+    def _collect(self, limit):
         return [memdam.common.event.new(u"com.memdam.cpu", cpu__number__percent=0.2)]
 
 def main():
@@ -65,11 +65,11 @@ def main():
     sched = apscheduler.scheduler.Scheduler(standalone=True)
 
     #TODO: schedule a bunch of collectors based on the config
-    collector = SystemStats(config)
+    collector = SystemStats(config=config, state_store=None, eventstore=local_events, blobstore=local_blobs)
     collector.start()
     def collect():
         """Scheduler only calls functions without arguments"""
-        collector.collect_and_persist(local_events, local_blobs)
+        collector.collect_and_persist(1)
     sched.add_cron_job(collect, second='0,10,20,30,40,50')
 
     synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)

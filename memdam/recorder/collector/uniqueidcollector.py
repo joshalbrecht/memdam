@@ -31,8 +31,8 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
     :type _id_collector: function
     """
 
-    def __init__(self, config, state_store):
-        memdam.recorder.collector.collector.Collector.__init__(self, config, state_store)
+    def __init__(self, config=None, state_store=None, eventstore=None, blobstore=None):
+        memdam.recorder.collector.collector.Collector.__init__(self, config=config, state_store=state_store, eventstore=eventstore, blobstore=blobstore)
         self._ids_already_generated = set(self._state_store.get_state()['finished'])
         self._new_id_queue = multiprocessing.Queue()
         self._id_queue = multiprocessing.Queue()
@@ -80,7 +80,7 @@ class UniqueIdCollector(memdam.recorder.collector.collector.Collector):
             strand.start()
             self._worker_strands.append(strand)
 
-    def collect(self, limit):
+    def _collect(self, limit):
         assert self._id_collector != None, "Subclasses MUST call launch() before the first call to collect()! (%s failed this contract)" % (self)
 
         #if the strand finished, start it up again

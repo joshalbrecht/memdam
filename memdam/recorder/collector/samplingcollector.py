@@ -10,10 +10,10 @@ class SamplingCollector(memdam.recorder.collector.collector.Collector):
     missed.
     """
 
-    def __init__(self, config, state_store):
-        memdam.recorder.collector.collector.Collector.__init__(self, config, state_store)
+    def __init__(self, config=None, state_store=None, eventstore=None, blobstore=None):
+        memdam.recorder.collector.collector.Collector.__init__(self, config=config, state_store=state_store, eventstore=eventstore, blobstore=blobstore)
 
-    def collect(self, limit):
+    def _collect(self, limit):
         if limit <= 0:
             memdam.log.error("SamplingCollector %s was skipped!" % (self))
         else:
