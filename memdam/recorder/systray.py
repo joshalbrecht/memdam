@@ -1,3 +1,5 @@
+import logging
+
 import rumps
 
 import memdam.common.parallel
@@ -17,5 +19,8 @@ class Capture(rumps.App):
         rumps.alert("todo")
 
 if __name__ == "__main__":
-    memdam.common.parallel.create_strand("chronographer_main", memdam.recorder.main.main)
+    handlers = [memdam.STDOUT_HANDLER]
+    memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
+    strand = memdam.common.parallel.create_strand("chronographer_main", memdam.recorder.main.main)
+    strand.start()
     Capture().run()

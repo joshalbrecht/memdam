@@ -71,8 +71,8 @@ def main():
     device = "pretendThatThisIsAUUID"
     config = memdam.recorder.config.Config(configFile)
 
-    handlers = [memdam.STDOUT_HANDLER]
-    memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
+    #handlers = [memdam.STDOUT_HANDLER]
+    #memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
 
     #create both local and remote blob and event stores
     local_blob_folder = os.path.join(local_folder, "blobs")
