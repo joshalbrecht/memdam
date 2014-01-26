@@ -8,6 +8,7 @@ import logging
 
 import apscheduler.scheduler
 
+import memdam.common.utils
 import memdam.common.event
 import memdam.common.timeutils
 import memdam.common.parallel
@@ -19,6 +20,7 @@ import memdam.eventstore.sqlite
 import memdam.eventstore.https
 import memdam.recorder.config
 import memdam.recorder.collector.collector
+import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.sync
 
 #TODO: probably shouldn't do this, needed config
@@ -31,6 +33,33 @@ class SystemStats(memdam.recorder.collector.collector.Collector):
 
     def _collect(self, limit):
         return [memdam.common.event.new(u"com.memdam.cpu", cpu__number__percent=0.2)]
+
+COLLECTORS = [SystemStats, memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
+if memdam.common.utils.is_windows():
+    COLLECTORS += []
+elif memdam.common.utils.is_osx():
+    import memdam.recorder.collector.osx.webcam
+    COLLECTORS += [memdam.recorder.collector.osx.webcam.WebcamCollector]
+else:
+    import memdam.recorder.collector.linux.webcam
+    COLLECTORS += [memdam.recorder.collector.linux.webcam.WebcamCollector]
+COLLECTORS = tuple(COLLECTORS)
+
+def schedule(sched, collector):
+    def collect():
+        """Scheduler only calls functions without arguments"""
+        memdam.log.debug("Collecting events from %s" % (collector))
+        collector.collect_and_persist(1)
+    sched.add_cron_job(collect, second='0,10,20,30,40,50')
+
+def create_collectors(sched, collector_kwargs):
+    collectors = []
+    for collector_class in COLLECTORS:
+        collector = collector_class(**collector_kwargs)
+        collector.start()
+        schedule(sched, collector)
+        collectors.append(collector)
+    return collectors
 
 def main():
     """Run the daemon. Blocks."""
@@ -65,12 +94,8 @@ def main():
     sched = apscheduler.scheduler.Scheduler(standalone=True)
 
     #TODO: schedule a bunch of collectors based on the config
-    collector = SystemStats(config=config, state_store=None, eventstore=local_events, blobstore=local_blobs)
-    collector.start()
-    def collect():
-        """Scheduler only calls functions without arguments"""
-        collector.collect_and_persist(1)
-    sched.add_cron_job(collect, second='0,10,20,30,40,50')
+    collector_kwargs = dict(config=config, state_store=None, eventstore=local_events, blobstore=local_blobs)
+    collectors = create_collectors(sched, collector_kwargs)
 
     synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)
     synchronizer.start()
@@ -82,7 +107,8 @@ def main():
         #stopd scheduling the collection of more events
         sched.shutdown()
         #stop each collector
-        collector.stop()
+        for collector in collectors:
+            collector.stop()
         #stop synchronizing everything
         synchronizer.stop()
         #TODO: cleaner shutdown. Figure out what exception type this is

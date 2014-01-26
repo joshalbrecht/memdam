@@ -33,7 +33,7 @@ def report(e):
     html_file.close()
     webbrowser.open_new_tab("file://%s" % (filename))
     #just so that it doesn't pop up a million windows
-    time.sleep(30.0)
+    sys.exit()
   else:
     send_email(memdam.config.mandrill_key, textContent, htmlContent)
 

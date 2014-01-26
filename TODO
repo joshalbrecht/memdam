@@ -1,11 +1,18 @@
-
-integrate screenshot and webcam code into memdam
+test that manually run version sends events to server
+test that installer still builds
 test that installed version sends events to the server
 test that we can look at the actual events in some sensible way
 send to justin (can just start and stop the whole thing manually for now)
 restart server and delete data
 
 future:
+fix qt warning (works now, but unsafe):
+    QPixmap: It is not safe to use pixmaps outside the GUI thread
+    see here: http://stackoverflow.com/a/8650575
+    and here: http://pyqt.sourceforge.net/Docs/PyQt4/new_style_signals_slots.html
+deployment should set up mandrill key too, otherwise it will exit on error :(
+make integration test harness for collectors (esp consider which platforms you support)
+make integration tests for each collector
 make configuration dictionary for everything that was hard coded
 watch configuration for changes
 make app prompt for configuration on first startup

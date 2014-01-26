@@ -44,6 +44,8 @@ class Eventstore(memdam.eventstore.api.Eventstore):
     Indices are named "name__type__secondary__indextype"
     """
 
+    EXTENSION = '.sql'
+
     def __init__(self, folder):
         self.folder = folder
         self.memory_connection = None
@@ -145,7 +147,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
                 if not "__docs" in table_name:
                     tables.append(table_name)
         else:
-            tables = list(os.listdir(self.folder))
+            tables = [r[:-1*len(Eventstore.EXTENSION)] for r in list(os.listdir(self.folder)) if r.endswith(Eventstore.EXTENSION)]
         return [unicode(r) for r in tables]
 
     def _get_or_create_memory_connection(self):
@@ -161,7 +163,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         """
         if self.folder == ":memory:":
             return self._get_or_create_memory_connection()
-        db_file = os.path.join(self.folder, table_name)
+        db_file = os.path.join(self.folder, table_name + Eventstore.EXTENSION)
         memdam.log.trace("Connecting to %s in read only mode? %s" % (db_file, read_only))
         if read_only:
             conn = sqlite3.connect(db_file, isolation_level="DEFERRED")
@@ -196,7 +198,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
             self._update_columns(cur, existing_columns, required_columns)
             return key_names
         key_names = execute_with_retries(update_columns, 5)
-        
+
         cur = conn.cursor()
         cur.execute("BEGIN EXCLUSIVE")
         self._insert_events(cur, events, key_names, table_name)
