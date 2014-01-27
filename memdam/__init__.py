@@ -82,3 +82,5 @@ def shutdown_log():
     
 def is_threaded_logging_setup():
     return hasattr(log.handlers[0], 'queue')
+
+

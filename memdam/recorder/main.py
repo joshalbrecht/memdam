@@ -3,10 +3,12 @@
 A daemon that will collect and transmit events for as many types of data as possible.
 """
 
+import sys
 import os
 import logging
 
 import apscheduler.scheduler
+import PyQt4.QtCore
 
 import memdam.common.utils
 import memdam.common.event
@@ -22,6 +24,7 @@ import memdam.recorder.config
 import memdam.recorder.collector.collector
 import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.sync
+import memdam.recorder.application
 
 #TODO: probably shouldn't do this, needed config
 import memdam.server.web.urls
@@ -98,13 +101,21 @@ def main():
     #TODO: schedule a bunch of collectors based on the config
     collector_kwargs = dict(config=config, state_store=None, eventstore=local_events, blobstore=local_blobs)
     collectors = create_collectors(sched, collector_kwargs)
-
+    
+    #start the synchronizer in the background
     synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)
     synchronizer.start()
-
+    
+    #start the scheduler in the background
+    strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
+    strand.start()
+    
     try:
-        #run until the exit signal has been recieved
-        sched.start()
+        #TODO: shouldn't actually depend on QT for the main loop unless available. otherwise use the scheduler.
+        #launch as a qt app
+        app = memdam.recorder.application.app()
+        PyQt4.QtCore.QTimer.singleShot(0, app.process_external_commands)
+        app.exec_()
     except Exception, e:
         #stopd scheduling the collection of more events
         sched.shutdown()
@@ -114,7 +125,8 @@ def main():
         #stop synchronizing everything
         synchronizer.stop()
         #TODO: cleaner shutdown. Figure out what exception type this is
-        raise e
+        memdam.shutdown_log()
+        raise
 
 if __name__ == '__main__':
     main()
