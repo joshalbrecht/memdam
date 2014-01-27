@@ -24,6 +24,7 @@ from PyObjCTools import AppHelper
 
 import memdam
 import memdam.common.event
+import memdam.common.parallel
 import memdam.recorder.collector.collector
 
 class Camera(NSObject):
@@ -86,7 +87,10 @@ class Camera(NSObject):
         # Assuming that there is only one global event loop, so we shouldn't
         # have to worry with locks
 
-        if self.running: return True
+        if self.running:
+            return True
+        
+        pool = NSAutoreleasePool.alloc().init()
         self.running = True
         self.output_path = output_path
         if os.path.exists(self.output_path):
@@ -97,6 +101,8 @@ class Camera(NSObject):
         self.session.startRunning()
         while not os.path.exists(self.output_path):
             time.sleep(0.2)
+        
+        del pool
 
 class WebcamCollector(memdam.recorder.collector.collector.Collector):
     """
@@ -105,6 +111,9 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
 
     def start(self):
         self._camera = Camera.alloc().init()
+        #strand = memdam.common.parallel.create_strand("osx_runner", AppHelper.runEventLoop, use_process=False)
+        strand = memdam.common.parallel.create_strand("osx_runner", AppHelper.runConsoleEventLoop, use_process=False)
+        strand.start()
 
     def _collect(self, limit):
         _, snapshot_file = tempfile.mkstemp(".png")
