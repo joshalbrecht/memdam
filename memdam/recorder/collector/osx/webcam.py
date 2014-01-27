@@ -112,8 +112,8 @@ class Camera(NSObject):
         self.session.startRunning()
         memdam.log.warn("***WAITING FOR OUTPUT")
         while not os.path.exists(self.output_path):
-            #time.sleep(0.2)
-            Foundation.NSRunLoop.currentRunLoop().runMode_beforeDate_(Foundation.NSDefaultRunLoopMode, NSDate.dateWithTimeIntervalSince1970_(time.mktime((datetime.timedelta(seconds=3) + datetime.datetime.now()).timetuple())))
+            time.sleep(0.2)
+            #Foundation.NSRunLoop.currentRunLoop().runMode_beforeDate_(Foundation.NSDefaultRunLoopMode, NSDate.dateWithTimeIntervalSince1970_(time.mktime((datetime.timedelta(seconds=3) + datetime.datetime.now()).timetuple())))
         memdam.log.warn("***DELETING POOL")
         del pool
 
