@@ -57,9 +57,9 @@ class Window(QtGui.QDialog):
         self.createActions()
         self.createTrayIcon()
         
-        icon = QtGui.QIcon('heart.svg')
-        self.trayIcon.setIcon(icon)
-        self.setWindowIcon(icon)
+        self.icon = QtGui.QIcon('heart.svg')
+        self.trayIcon.setIcon(self.icon)
+        self.setWindowIcon(self.icon)
 
         self.trayIcon.show()
 

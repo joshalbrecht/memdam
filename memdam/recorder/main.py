@@ -6,6 +6,7 @@ A daemon that will collect and transmit events for as many types of data as poss
 import sys
 import os
 import logging
+import time
 
 import apscheduler.scheduler
 import PyQt4.QtCore
@@ -60,7 +61,6 @@ def create_collectors(sched, collector_kwargs):
     collectors = []
     for collector_class in COLLECTORS:
         collector = collector_class(**collector_kwargs)
-        collector.start()
         schedule(sched, collector)
         collectors.append(collector)
     return collectors
@@ -104,11 +104,16 @@ def main():
     
     #start the synchronizer in the background
     synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)
-    synchronizer.start()
     
     #start the scheduler in the background
     strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
-    strand.start()
+    
+    def start_all_of_the_things():
+        for collector in collectors:
+            collector.start()
+        time.sleep(0.5)
+        synchronizer.start()
+        strand.start()
     
     def clean_shutdown():
         #stop scheduling the collection of more events
@@ -126,7 +131,8 @@ def main():
         #launch as a qt app
         app = memdam.recorder.application.app()
         PyQt4.QtCore.QTimer.singleShot(0, app.process_external_commands)
-        app.exec_()
+        PyQt4.QtCore.QTimer.singleShot(1000, start_all_of_the_things)
+        #app.exec_()
         
         if not PyQt4.QtGui.QSystemTrayIcon.isSystemTrayAvailable():
             PyQt4.QtGui.QMessageBox.critical(None, "Systray",
@@ -134,11 +140,13 @@ def main():
             sys.exit(1)
     
         PyQt4.QtGui.QApplication.setQuitOnLastWindowClosed(False)
-    
         window = memdam.recorder.application.Window(clean_shutdown)
         window.show()
+        window.raise_()
         sys.exit(app.exec_())
     except Exception, e:
+        import traceback
+        traceback.print_exc(e)
         clean_shutdown()
         raise
 
