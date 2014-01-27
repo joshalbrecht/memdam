@@ -1,4 +1,8 @@
-test that manually run version sends events to server
+
+sometimes the webcam thing doesn't quite start right...  perhaps needs some time to boot up? race condition with what?
+    should probably start a little while AFTER the application...
+    eg, call start and create afterwards for all of those things
+        and significantly afterwards
 test that installer still builds
 test that installed version sends events to the server
 test that we can look at the actual events in some sensible way

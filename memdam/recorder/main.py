@@ -110,14 +110,8 @@ def main():
     strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
     strand.start()
     
-    try:
-        #TODO: shouldn't actually depend on QT for the main loop unless available. otherwise use the scheduler.
-        #launch as a qt app
-        app = memdam.recorder.application.app()
-        PyQt4.QtCore.QTimer.singleShot(0, app.process_external_commands)
-        app.exec_()
-    except Exception, e:
-        #stopd scheduling the collection of more events
+    def clean_shutdown():
+        #stop scheduling the collection of more events
         sched.shutdown()
         #stop each collector
         for collector in collectors:
@@ -126,6 +120,26 @@ def main():
         synchronizer.stop()
         #TODO: cleaner shutdown. Figure out what exception type this is
         memdam.shutdown_log()
+    
+    try:
+        #TODO: shouldn't actually depend on QT for the main loop unless available. otherwise use the scheduler.
+        #launch as a qt app
+        app = memdam.recorder.application.app()
+        PyQt4.QtCore.QTimer.singleShot(0, app.process_external_commands)
+        app.exec_()
+        
+        if not PyQt4.QtGui.QSystemTrayIcon.isSystemTrayAvailable():
+            PyQt4.QtGui.QMessageBox.critical(None, "Systray",
+                    "I couldn't detect any system tray on this system.")
+            sys.exit(1)
+    
+        PyQt4.QtGui.QApplication.setQuitOnLastWindowClosed(False)
+    
+        window = memdam.recorder.application.Window(clean_shutdown)
+        window.show()
+        sys.exit(app.exec_())
+    except Exception, e:
+        clean_shutdown()
         raise
 
 if __name__ == '__main__':
