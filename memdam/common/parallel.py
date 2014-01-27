@@ -82,7 +82,7 @@ def create_strand(name, target, args=None, kwargs=None, use_process=False):
     you specify True, may not launch a process if memdam.config.debug_processes is set
     :type  use_process: bool
     """
-    if hasattr(memdam.log.handlers[0], 'queue'):
+    if memdam.is_threaded_logging_setup():
         queue = memdam.log.handlers[0].queue
     else:
         if memdam.config.debug_logging:

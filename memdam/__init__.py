@@ -79,3 +79,6 @@ def flush_logs():
 def shutdown_log():
     """Should be the very last statement in a program. Without this there are warnings about unclean debug client shutdowns."""
     log.handlers[0]._shutdown()
+    
+def is_threaded_logging_setup():
+    return hasattr(log.handlers[0], 'queue')

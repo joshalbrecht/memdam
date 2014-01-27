@@ -35,6 +35,7 @@ class SystemStats(memdam.recorder.collector.collector.Collector):
         return [memdam.common.event.new(u"com.memdam.cpu", cpu__number__percent=0.2)]
 
 COLLECTORS = [SystemStats, memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
+#COLLECTORS = [SystemStats]
 if memdam.common.utils.is_windows():
     COLLECTORS += []
 elif memdam.common.utils.is_osx():
@@ -71,8 +72,9 @@ def main():
     device = "pretendThatThisIsAUUID"
     config = memdam.recorder.config.Config(configFile)
 
-    #handlers = [memdam.STDOUT_HANDLER]
-    #memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
+    if not memdam.is_threaded_logging_setup():
+        handlers = [memdam.STDOUT_HANDLER]
+        memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
 
     #create both local and remote blob and event stores
     local_blob_folder = os.path.join(local_folder, "blobs")
