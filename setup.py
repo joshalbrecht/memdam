@@ -1,9 +1,9 @@
 from setuptools import setup
 
-APP = ['memdam/recorder/systray.py']
-DATA_FILES = []
+APP = ['memdam/recorder/main.py']
+DATA_FILES = ['heart.png', 'bin/wacaw']
 OPTIONS = {
-    'argv_emulation': True,
+    'argv_emulation': False,
     'plist': {
         'LSUIElement': True,
     },

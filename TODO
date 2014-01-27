@@ -1,4 +1,6 @@
 
+possibly useful: http://stackoverflow.com/questions/11534293/pyinstaller-wont-load-the-pyqts-images-to-the-gui
+
 sometimes the webcam thing doesn't quite start right...  perhaps needs some time to boot up? race condition with what?
     should probably start a little while AFTER the application...
     eg, call start and create afterwards for all of those things

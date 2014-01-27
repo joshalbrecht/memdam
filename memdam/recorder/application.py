@@ -57,7 +57,13 @@ class Window(QtGui.QDialog):
         self.createActions()
         self.createTrayIcon()
         
-        self.icon = QtGui.QIcon('heart.svg')
+        infile = open('/Users/josh/code/memdam/dist/main.app/Contents/Resources/heart.png', 'rb')
+        self.image_data = infile.read()
+        infile.close()
+        self.qimg = QtGui.QImage.fromData(self.image_data, "PNG")
+        self.pixmap = QtGui.QPixmap.fromImage(self.qimg)
+        #self.icon = QtGui.QIcon('heart.svg')
+        self.icon = QtGui.QIcon(self.pixmap)
         self.trayIcon.setIcon(self.icon)
         self.setWindowIcon(self.icon)
 
