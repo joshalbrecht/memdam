@@ -1,27 +1,22 @@
 
-possibly useful: http://stackoverflow.com/questions/11534293/pyinstaller-wont-load-the-pyqts-images-to-the-gui
-
-sometimes the webcam thing doesn't quite start right...  perhaps needs some time to boot up? race condition with what?
-    should probably start a little while AFTER the application...
-    eg, call start and create afterwards for all of those things
-        and significantly afterwards
-test that installer still builds
-test that installed version sends events to the server
-test that we can look at the actual events in some sensible way
-send to justin (can just start and stop the whole thing manually for now)
+deploy to remote server
 restart server and delete data
+create users on remote server
+test that the collector works
+test that we can look at the actual events in some sensible way
+distribute to initial users
 
 future:
-fix qt warning (works now, but unsafe):
-    QPixmap: It is not safe to use pixmaps outside the GUI thread
-    see here: http://stackoverflow.com/a/8650575
-    and here: http://pyqt.sourceforge.net/Docs/PyQt4/new_style_signals_slots.html
-deployment should set up mandrill key too, otherwise it will exit on error :(
+need better logging and error handling--running the collector integration test with the webcam collector without changing permissioning fails but with no errors
+    also need to print out configuration, urls being hit, data being passed, etc
+    need trace all over the place so that it is easier to see wtf is going on
+    perhaps time for aop logging...
 make integration test harness for collectors (esp consider which platforms you support)
 make integration tests for each collector
 make configuration dictionary for everything that was hard coded
 watch configuration for changes
 make app prompt for configuration on first startup
+possibly useful: http://stackoverflow.com/questions/11534293/pyinstaller-wont-load-the-pyqts-images-to-the-gui
 make menu items actually work
     preferences (open file in an editor)
     pause/resume
@@ -31,6 +26,7 @@ add https:
     http://www.zacwitte.com/using-ssl-https-with-cherrypy-3-2-0-example
     http://cemremengu.wordpress.com/2012/11/27/setting-up-an-https-ssl-server-using-cherrypy/
     note: can store certs in truecrypt container
+change to hashed and salted passwords instead
 add separate tests for blobstore
 add logging
 add error reporting

@@ -24,6 +24,8 @@ class Eventstore(object):
 
     def find(self, query):
         """
+        :param query: defines the filters which restrict which events should be found
+        :type  query: memdam.common.query.Query
         :returns: all events that match the given query.
         :rtype: list(memdam.common.event.Event)
         """

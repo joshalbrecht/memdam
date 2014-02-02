@@ -19,12 +19,13 @@ def events(unsafe_event_id):
     For now, we just create the blob resources separately. Maybe someday they can be created inline too.
     """
     event_id = uuid.UUID(unsafe_event_id)
+    archive = memdam.server.web.utils.get_archive(flask.request.authorization.username)
     if flask.request.method == 'GET':
-        event = memdam.server.web.utils.get_archive().get(event_id)
+        event = archive.get(event_id)
         event_json = event.to_json_dict()
         return flask.jsonify(event_json)
     elif flask.request.method == 'DELETE':
-        memdam.server.web.utils.get_archive().delete(event_id)
+        archive.delete(event_id)
         return '', 204
     else:
         if not flask.request.json:
@@ -34,5 +35,5 @@ def events(unsafe_event_id):
         flask.request.json['id__id'] = event_id.hex
         #TODO: run more validation on event json
         event = memdam.common.event.Event.from_json_dict(flask.request.json)
-        memdam.server.web.utils.get_archive().save([event])
+        archive.save([event])
         return '', 204

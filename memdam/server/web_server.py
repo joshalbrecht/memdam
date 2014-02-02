@@ -7,6 +7,7 @@ import cherrypy
 import cherrypy.wsgiserver
 from funcy import *
 
+import memdam.server.admin
 import memdam.server.web.urls
 
 DEFAULTS = {
@@ -20,8 +21,7 @@ def _load_config_from_file(config_file):
         assert os.path.exists(config_file), "Config file (%s) does not exist!" % (config_file)
         memdam.server.web.urls.app.config.from_pyfile(config_file, silent=False)
 
-def run(**kwargs):
-    """Parses configuration and runs the server"""
+def _parse_config(kwargs):
     #configuration starts with defaults as defined above
     memdam.server.web.app.config.update(copy.deepcopy(DEFAULTS))
     #if the name of a config file was passed in programmatically, load those settings
@@ -31,6 +31,7 @@ def run(**kwargs):
     #if the name of a config file was defined in an environment variable, load those settings
     _load_config_from_file(os.environ.get('YOURAPPLICATION_SETTINGS', None))
 
+def _run_server():
     #fix up the logger
     memdam.log = memdam.server.web.urls.app.logger
     memdam.hack_logger(memdam.log)
@@ -46,6 +47,17 @@ def run(**kwargs):
             server.stop()
     else:
         memdam.server.web.urls.app.run(debug=True, use_reloader=False)
+
+def run(**kwargs):
+    """Parses configuration and runs the server"""
+    _parse_config(kwargs)
+    _run_server()
+
+def test_run(username, password, **kwargs):
+    """Same as run, except that it also creates a user. Useful for testing."""
+    _parse_config(kwargs)
+    memdam.server.admin.create_archive(username, password)
+    _run_server()
 
 def run_as_script():
     """Parses commandline arguments, converting them into the appropriate config variables"""
@@ -67,4 +79,5 @@ def run_as_script():
     run(**defined_args)
 
 if __name__ == '__main__':
-    run_as_script()
+    #run_as_script()
+    test_run(u'testyguy', u'hispass', DATABASE_FOLDER='/tmp/whatevs')

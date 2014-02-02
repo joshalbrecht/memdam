@@ -17,10 +17,8 @@ import tests.integration
 def test_save_and_get_event_with_file():
     test_data = "fw98n59askyuesfh.jzlsrkyg"
     extension = u"txt"
-    server, _ = tests.integration.start_server("test_web_client")
+    server, _, username, password = tests.integration.start_server("test_web_client")
     test_file = memdam.common.utils.make_temp_path() + "." + extension
-    username = memdam.server.web.urls.app.config["USERNAME"]
-    password = memdam.server.web.urls.app.config["PASSWORD"]
     server_url = "http://127.0.0.1:5000/api/v1/"
     client = memdam.common.client.MemdamClient(server_url, username, password)
 

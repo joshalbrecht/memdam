@@ -48,6 +48,9 @@ def create_logger(handlers, level, name):
 #logging
 SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN, name="default")
 log = SIMPLE_LOGGER
+#note: just for pylint
+log.trace = lambda x: None
+hack_logger(log)
 
 def use_debug_logger():
     """Convenience function. Call this to log all statements (TRACE and above) to STDOUT"""
@@ -79,8 +82,6 @@ def flush_logs():
 def shutdown_log():
     """Should be the very last statement in a program. Without this there are warnings about unclean debug client shutdowns."""
     log.handlers[0]._shutdown()
-    
+
 def is_threaded_logging_setup():
     return hasattr(log.handlers[0], 'queue')
-
-

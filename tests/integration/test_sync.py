@@ -2,6 +2,7 @@
 import os
 import time
 import logging
+import shutil
 
 import nose.tools
 
@@ -59,6 +60,11 @@ def test_sync():
     #check that the data in the dest stores is correct
     nose.tools.eq_(set(event_dest.find(memdam.common.query.Query())), set(TestCollector.events))
     nose.tools.eq_(_count_blobs(blob_dest._folder), 2)
+    #clean up
+    shutil.rmtree(event_source_folder)
+    shutil.rmtree(event_dest_folder)
+    shutil.rmtree(blob_source_folder)
+    shutil.rmtree(blob_dest_folder)
 
 def _count_blobs(blobstore_folder):
     """:returns: the number of blob files in the folder"""

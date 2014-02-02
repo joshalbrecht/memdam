@@ -25,6 +25,7 @@ def blobs(unsafe_blob_id, unsafe_extension):
     extension = validate_extension(unsafe_extension)
     blob_ref = memdam.common.blob.BlobReference(blob_id, extension)
     filename = memdam.common.utils.make_temp_path()
+    blobstore = memdam.server.web.utils.get_blobstore(flask.request.authorization.username)
     if flask.request.method == 'PUT':
         if 'multipart/form-data' in flask.request.content_type:
             if not len(flask.request.files) == 1:
@@ -39,14 +40,14 @@ def blobs(unsafe_blob_id, unsafe_extension):
                 out_file.write(raw_data)
         else:
             raise memdam.server.web.errors.BadRequest("Must use json or multipart/form-data upload methods")
-        memdam.server.web.utils.get_blobstore().set_data_from_file(blob_ref, filename)
+        blobstore.set_data_from_file(blob_ref, filename)
         os.remove(filename)
         return '', 204
     elif flask.request.method == 'DELETE':
-        memdam.server.web.utils.get_blobstore().delete(blob_ref)
+        blobstore.delete(blob_ref)
         return '', 204
     else:
-        memdam.server.web.utils.get_blobstore().get_data_to_file(blob_ref, filename)
+        blobstore.get_data_to_file(blob_ref, filename)
         with FileResponseCleaner(filename):
             return flask.send_file(filename)
 

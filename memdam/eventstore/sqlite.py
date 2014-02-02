@@ -4,6 +4,7 @@ import datetime
 import re
 import os
 import sqlite3
+import time
 import itertools
 
 import pytz
@@ -54,13 +55,13 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         memdam.log.debug("Saving events")
         sorted_events = sorted(events, key=lambda x: x.namespace)
         for namespace, grouped_events in itertools.groupby(sorted_events, lambda x: x.namespace):
-            table_name = namespace.replace(".", "_")
+            table_name = namespace_to_table_name(namespace)
             self._save_events(list(grouped_events), table_name)
 
     def get(self, event_id):
         for table_name in self._all_table_names():
             conn = self._connect(table_name, read_only=True)
-            namespace = table_name.replace("_", ".")
+            namespace = table_name_to_namespace(table_name)
             cur = conn.cursor()
             sql = "SELECT * FROM %s WHERE id__id = ?;" % (table_name)
             execute_sql(cur, sql, (buffer(event_id.bytes),))
@@ -70,16 +71,15 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         raise Exception("event with id %s not found" % (event_id))
 
     def find(self, query):
-        #TODO: filter down earlier based on namespace in query
         events = []
         for table_name in self._all_table_names():
-            events += self._find_matching_events_in_table(table_name, query)
+            if _matches_namespace_filters(table_name, query):
+                events += self._find_matching_events_in_table(table_name, query)
         return events
 
     def delete(self, event_id):
         for table_name in self._all_table_names():
             conn = self._connect(table_name, read_only=False)
-            namespace = table_name.replace("_", ".")
             cur = conn.cursor()
             cur.execute("BEGIN EXCLUSIVE")
             sql = "SELECT _id FROM %s WHERE id__id = ?;" % (table_name)
@@ -98,12 +98,13 @@ class Eventstore(memdam.eventstore.api.Eventstore):
 
     def _find_matching_events_in_table(self, table_name, query):
         conn = self._connect(table_name, read_only=True)
-        namespace = table_name.replace("_", ".")
+        namespace = table_name_to_namespace(table_name)
         cur = conn.cursor()
         args = ()
         sql = "SELECT * FROM %s" % (table_name)
-        if query.filters:
-            filter_string, new_args = self._get_filter_string(query.filters)
+        field_filters, _ = _separate_filters(query.filters)
+        if field_filters:
+            filter_string, new_args = _get_field_filter_string(field_filters)
             args = args + new_args
             sql += " WHERE " + filter_string
         if query.order:
@@ -294,6 +295,32 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
         cur.executemany(sql, values)
 
+#TODO: this whole notion of filters needs to be better thought out
+def _separate_filters(filters):
+    field_filters = []
+    namespaces = []
+    for f in filters:
+        if f.rhs == 'namespace__namespace':
+            assert f.operator == '='
+            namespaces.append(f.lhs)
+        elif f.lhs == 'namespace__namespace':
+            assert f.operator == '='
+            namespaces.append(f.rhs)
+        else:
+            field_filters.append(f)
+    return field_filters, namespaces
+
+def _matches_namespace_filters(table_name, query):
+    _, namespaces = _separate_filters(query.filters)
+    if len(namespaces) <= 0:
+        return True
+    return table_name_to_namespace(table_name) in namespaces
+
+def _get_field_filter_string(field_filters):
+    #TODO (security): lol so bad.
+    filter_string = ' AND '.join(('%s %s %s' % (f.lhs, f.operator, f.rhs) for f in field_filters))
+    return filter_string, ()
+
 def make_value_tuple(event, key_names, event_id):
     """Turns an event into a sql value tuple"""
     values = [event_id]
@@ -322,10 +349,15 @@ def convert_long_to_time(value):
     """turns a long into a datetime.datetime"""
     return EPOCH_BEGIN + datetime.timedelta(microseconds=value)
 
+def table_name_to_namespace(table_name):
+    return table_name.replace(u'_', u'.')
+def namespace_to_table_name(namespace):
+    return namespace.replace(u'.', u'_')
+
 def _create_event_from_row(row, names, namespace, conn):
     """returns a memdam.common.event.Event, generated from the row"""
     data = {}
-    table_name = namespace.replace(".", "_")
+    table_name = namespace_to_table_name(namespace)
     for i in range(0, len(names)):
         name = names[i]
         if name == '_id':

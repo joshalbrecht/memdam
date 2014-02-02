@@ -19,5 +19,6 @@ def query_events():
     if not flask.request.json:
         flask.abort(400)
     query = memdam.common.query.Query.from_json_dict(flask.request.json)
-    events = memdam.server.web.utils.get_archive().find(query)
+    archive = memdam.server.web.utils.get_archive(flask.request.authorization.username)
+    events = archive.find(query)
     return flask.jsonify(events)

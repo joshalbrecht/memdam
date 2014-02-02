@@ -16,3 +16,7 @@ def is_windows():
 
 def is_osx():
     return sys.platform == 'darwin'
+
+def is_installed():
+    return getattr(sys, 'frozen', '') != ''
+

@@ -7,9 +7,9 @@ import sys
 import os
 import logging
 import time
+import argparse
 
 import apscheduler.scheduler
-import PyQt4.QtCore
 
 import memdam.common.utils
 import memdam.common.event
@@ -22,33 +22,34 @@ import memdam.blobstore.https
 import memdam.eventstore.sqlite
 import memdam.eventstore.https
 import memdam.recorder.config
-import memdam.recorder.collector.collector
+import memdam.recorder.collector.systemstats
 import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.sync
 import memdam.recorder.application
 
-#TODO: probably shouldn't do this, needed config
-import memdam.server.web.urls
-
-class SystemStats(memdam.recorder.collector.collector.Collector):
-    """
-    A simple collector for statistics like CPU usage, memory usage, I/O events, etc
-    """
-
-    def _collect(self, limit):
-        return [memdam.common.event.new(u"com.memdam.cpu", cpu__number__percent=0.2)]
-
-COLLECTORS = [SystemStats, memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
-#COLLECTORS = [SystemStats]
 if memdam.common.utils.is_windows():
-    COLLECTORS += []
+    pass
 elif memdam.common.utils.is_osx():
     import memdam.recorder.collector.osx.webcam
-    COLLECTORS += [memdam.recorder.collector.osx.webcam.WebcamCollector]
 else:
     import memdam.recorder.collector.linux.webcam
-    COLLECTORS += [memdam.recorder.collector.linux.webcam.WebcamCollector]
-COLLECTORS = tuple(COLLECTORS)
+
+import memdam.recorder.user.terminal
+try:
+    import memdam.recorder.user.qtgui
+except ImportError, e:
+    pass
+
+def all_collectors():
+    collectors = [memdam.recorder.collector.systemstats.SystemStats,
+                  memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
+    if memdam.common.utils.is_windows():
+        collectors += []
+    elif memdam.common.utils.is_osx():
+        collectors += [memdam.recorder.collector.osx.webcam.WebcamCollector]
+    else:
+        collectors += [memdam.recorder.collector.linux.webcam.WebcamCollector]
+    return tuple(collectors)
 
 def schedule(sched, collector):
     def collect():
@@ -59,21 +60,18 @@ def schedule(sched, collector):
 
 def create_collectors(sched, collector_kwargs):
     collectors = []
-    for collector_class in COLLECTORS:
+    for collector_class in all_collectors():
         collector = collector_class(**collector_kwargs)
         schedule(sched, collector)
         collectors.append(collector)
     return collectors
 
-def main():
+def run(user, config):
     """Run the daemon. Blocks."""
-
-    #TODO: actually read some configuration
-    configFile = "/home/cow/temp.json"
-    local_folder = "/tmp"
-    #TODO: in general, collectors should probably take a device
-    device = "pretendThatThisIsAUUID"
-    config = memdam.recorder.config.Config(configFile)
+    local_folder = config.get(u'data_folder')
+    username = config.get(u'username')
+    password = config.get(u'password')
+    server_url = config.get(u'server_url')
 
     if not memdam.is_threaded_logging_setup():
         handlers = [memdam.STDOUT_HANDLER]
@@ -86,9 +84,7 @@ def main():
     for folder in (local_event_folder, local_blob_folder):
         if not os.path.exists(folder):
             os.makedirs(folder)
-    username = memdam.server.web.urls.app.config["USERNAME"]
-    password = memdam.server.web.urls.app.config["PASSWORD"]
-    server_url = "http://ec2-54-201-240-100.us-west-2.compute.amazonaws.com:5000/api/v1/"
+
     client = memdam.common.client.MemdamClient(server_url, username, password)
     local_blobs = memdam.blobstore.localfolder.Blobstore(local_blob_folder)
     remote_blobs = memdam.blobstore.https.Blobstore(client)
@@ -101,21 +97,22 @@ def main():
     #TODO: schedule a bunch of collectors based on the config
     collector_kwargs = dict(config=config, state_store=None, eventstore=local_events, blobstore=local_blobs)
     collectors = create_collectors(sched, collector_kwargs)
-    
+
     #start the synchronizer in the background
     synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)
-    
+
     #start the scheduler in the background
     strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
-    
-    def start_all_of_the_things():
+
+    def start_collectors():
+        """Starts all of the actual processing threads"""
         for collector in collectors:
             collector.start()
-        time.sleep(0.5)
         synchronizer.start()
         strand.start()
-    
+
     def clean_shutdown():
+        """Call this to cancel all of the workers and exit cleanly"""
         #stop scheduling the collection of more events
         sched.shutdown()
         #stop each collector
@@ -125,30 +122,37 @@ def main():
         synchronizer.stop()
         #TODO: cleaner shutdown. Figure out what exception type this is
         memdam.shutdown_log()
-    
+
     try:
-        #TODO: shouldn't actually depend on QT for the main loop unless available. otherwise use the scheduler.
-        #launch as a qt app
-        app = memdam.recorder.application.app()
-        PyQt4.QtCore.QTimer.singleShot(0, app.process_external_commands)
-        PyQt4.QtCore.QTimer.singleShot(1000, start_all_of_the_things)
-        #app.exec_()
-        
-        if not PyQt4.QtGui.QSystemTrayIcon.isSystemTrayAvailable():
-            PyQt4.QtGui.QMessageBox.critical(None, "Systray",
-                    "I couldn't detect any system tray on this system.")
-            sys.exit(1)
-    
-        PyQt4.QtGui.QApplication.setQuitOnLastWindowClosed(False)
-        window = memdam.recorder.application.Window(clean_shutdown)
-        window.show()
-        window.raise_()
-        sys.exit(app.exec_())
+        sys.exit(user.main_loop(start_collectors, clean_shutdown))
     except Exception, e:
         import traceback
         traceback.print_exc(e)
         clean_shutdown()
         raise
 
+def run_as_script():
+    """Parses commandline arguments, converting them into the appropriate config variables"""
+    parser = argparse.ArgumentParser(description='Run the chronographer server.')
+    parser.add_argument('--config', dest='config', type=str,
+                        help='the path to a file with additional configuration')
+    parser.add_argument('--terminal', dest='terminal', type=bool,
+                        help='indicates that this should run without the gui')
+    args = parser.parse_args()
+    if args.terminal:
+        user = memdam.recorder.user.terminal.User()
+    else:
+        user = memdam.recorder.user.qtgui.User()
+    config_file = args.config
+    if config_file == None:
+        config_folder = os.path.join(os.path.expanduser('~'), u'.chronographer')
+        if not os.path.exists(config_folder):
+            os.makedirs(config_folder)
+        config_file = os.path.join(config_folder, u'config.json')
+        if not os.path.exists(config_file):
+            user.create_initial_config(config_file)
+    config = memdam.recorder.config.Config(config_file)
+    run(user, config)
+
 if __name__ == '__main__':
-    main()
+    run_as_script()
