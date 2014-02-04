@@ -78,7 +78,7 @@ def read_commandline_args():
     #hack for ipython admin interface:
     argv = sys.argv
     if '--' in sys.argv:
-        argv = ['script'] + sys.argv[sys.argv.index('--')+1:]
+        argv = sys.argv[sys.argv.index('--')+1:]
     args = parser.parse_args(argv)
     defined_args = select(lambda (k, v): v != None, vars(args))
     return defined_args

@@ -37,3 +37,6 @@ def create_archive(username, password):
         archives[username] = archive
         flask.g._archives = archives
     return archive
+
+if __name__ == '__main__':
+    setup()
