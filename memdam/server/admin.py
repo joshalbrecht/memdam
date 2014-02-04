@@ -38,5 +38,6 @@ def create_archive(username, password):
         flask.g._archives = archives
     return archive
 
-if __name__ == '__main__':
-    setup()
+#TODO: for some reason, it doesn't work if I do this. Have to call it from the ipython prompt manually...
+#if __name__ == '__main__':
+#    setup()

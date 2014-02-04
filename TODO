@@ -1,7 +1,4 @@
 
-deploy to remote server
-restart server and delete data
-create users on remote server
 test that the collector works
 test that we can look at the actual events in some sensible way
 distribute to initial users
