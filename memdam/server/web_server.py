@@ -1,4 +1,5 @@
 
+import sys
 import os
 import copy
 import argparse
@@ -74,7 +75,11 @@ def read_commandline_args():
                         help='the folder where the databases should be stored')
     parser.add_argument('--blobs', dest='BLOBSTORE_FOLDER', type=str,
                         help='the folder where the blobs should be stored')
-    args = parser.parse_args()
+    #hack for ipython admin interface:
+    argv = sys.argv
+    if '--' in sys.argv:
+        argv = ['script'] + sys.argv[sys.argv.index('--')+1:]
+    args = parser.parse_args(argv)
     defined_args = select(lambda (k, v): v != None, vars(args))
     return defined_args
 
