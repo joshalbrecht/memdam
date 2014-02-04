@@ -7,7 +7,11 @@ import flask
 import memdam.common.event
 import memdam.blobstore.localfolder
 import memdam.eventstore.sqlite
+import memdam.server.web_server
 from memdam.server.web import app
+
+def setup():
+    memdam.server.web_server._parse_config(memdam.server.web_server.read_commandline_args())
 
 def create_archive(username, password):
     """

@@ -31,10 +31,11 @@ def _parse_config(kwargs):
     #if the name of a config file was defined in an environment variable, load those settings
     _load_config_from_file(os.environ.get('YOURAPPLICATION_SETTINGS', None))
 
-def _run_server():
     #fix up the logger
     memdam.log = memdam.server.web.urls.app.logger
     memdam.hack_logger(memdam.log)
+
+def _run_server():
 
     if memdam.server.web.app.config['RUN_WSGI_SERVER']:
         address = memdam.server.web.app.config['LISTEN_ADDRESS']
@@ -59,8 +60,7 @@ def test_run(username, password, **kwargs):
     memdam.server.admin.create_archive(username, password)
     _run_server()
 
-def run_as_script():
-    """Parses commandline arguments, converting them into the appropriate config variables"""
+def read_commandline_args():
     parser = argparse.ArgumentParser(description='Run the chronographer server.')
     parser.add_argument('--port', dest='LISTEN_PORT', type=int,
                         help='the port on which to listen')
@@ -76,7 +76,11 @@ def run_as_script():
                         help='the folder where the blobs should be stored')
     args = parser.parse_args()
     defined_args = select(lambda (k, v): v != None, vars(args))
-    run(**defined_args)
+    return defined_args
+
+def run_as_script():
+    """Parses commandline arguments, converting them into the appropriate config variables"""
+    run(**read_commandline_args())
 
 if __name__ == '__main__':
     #run_as_script()
