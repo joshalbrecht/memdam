@@ -138,7 +138,12 @@ def run_as_script():
                         help='the path to a file with additional configuration')
     parser.add_argument('--terminal', dest='terminal', type=bool,
                         help='indicates that this should run without the gui')
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+    if len(unknown) > 1:
+        raise Exception("Invalid argument!" + str(unknown))
+    elif len(unknown) == 1:
+        if not unknown[0].startswith('-psn_'):
+            raise Exception("Invalid arguments: " + str(unknown))
     if args.terminal:
         user = memdam.recorder.user.terminal.User()
     else:

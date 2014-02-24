@@ -3,6 +3,9 @@ test that the collector works
 test that we can look at the actual events in some sensible way
 distribute to initial users
 
+command to build:
+    rm -rf dist build && python setup.py py2app && chmod +x dist/main.app/Contents/Resources/wacaw
+
 future:
 need better logging and error handling--running the collector integration test with the webcam collector without changing permissioning fails but with no errors
     also need to print out configuration, urls being hit, data being passed, etc
