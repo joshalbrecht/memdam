@@ -2,8 +2,6 @@
 import sys
 import tempfile
 
-import concurrent.futures
-
 import memdam
 import memdam.common.event
 import memdam.common.parallel

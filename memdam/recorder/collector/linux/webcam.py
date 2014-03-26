@@ -2,7 +2,7 @@
 import tempfile
 import select
 
-import Image
+from PIL import Image
 #from here: https://github.com/gebart/python-v4l2capture/
 import v4l2capture
 
