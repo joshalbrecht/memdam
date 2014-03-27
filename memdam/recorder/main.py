@@ -41,14 +41,14 @@ except ImportError, e:
     pass
 
 def all_collectors():
-    collectors = [memdam.recorder.collector.systemstats.SystemStats,
+    collectors = [#memdam.recorder.collector.systemstats.SystemStats,
                   memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
     if memdam.common.utils.is_windows():
         collectors += []
     elif memdam.common.utils.is_osx():
         collectors += [memdam.recorder.collector.osx.webcam.WebcamCollector]
     else:
-        collectors += [memdam.recorder.collector.linux.webcam.WebcamCollector]
+        collectors += []#[memdam.recorder.collector.linux.webcam.WebcamCollector]
     return tuple(collectors)
 
 def schedule(sched, collector):

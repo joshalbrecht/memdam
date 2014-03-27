@@ -79,6 +79,8 @@ def read_commandline_args():
     argv = sys.argv
     if '--' in sys.argv:
         argv = sys.argv[sys.argv.index('--')+1:]
+    else:
+        argv = argv[1:]
     args = parser.parse_args(argv)
     defined_args = select(lambda (k, v): v != None, vars(args))
     return defined_args
@@ -88,5 +90,4 @@ def run_as_script():
     run(**read_commandline_args())
 
 if __name__ == '__main__':
-    #run_as_script()
-    test_run(u'testyguy', u'hispass', DATABASE_FOLDER='/tmp/whatevs')
+    run_as_script()

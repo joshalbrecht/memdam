@@ -36,8 +36,8 @@ class User(object):
         time. Will be called when the main_loop is NOT running.
         """
         default_config = memdam.recorder.config.get_default_config(filename)
-        password = self.prompt_user(u'Please enter your username')
-        username = self.prompt_user(u'Please enter your password')
+        username = self.prompt_user(u'Please enter your username')
+        password = self.prompt_user(u'Please enter your password')
         new_config = memdam.recorder.config.Config(filename=filename, password=password, username=username, **default_config.data)
         new_config.save()
 
