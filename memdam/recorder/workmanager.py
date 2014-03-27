@@ -85,6 +85,8 @@ class Manager(object):
                     record = kill_queue.get(timeout=self._timeout)
                 except Queue.Empty:
                     pass
+                except EOFError:
+                    return
                 if record != None and isinstance(record, memdam.common.poisonpill.PoisonPill):
                     return
                 work_ids = self._generate_work_ids()

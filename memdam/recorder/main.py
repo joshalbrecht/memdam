@@ -41,6 +41,7 @@ except ImportError, e:
     pass
 
 def all_collectors():
+    #TODO: no more commenting out of code!  Make things configurable instead.
     collectors = [#memdam.recorder.collector.systemstats.SystemStats,
                   memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
     if memdam.common.utils.is_windows():

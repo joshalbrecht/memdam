@@ -1,4 +1,5 @@
 
+import signal
 import sys
 import concurrent.futures
 import Queue
@@ -21,27 +22,41 @@ class MyQApp(QtGui.QApplication):
     def __init__(self, *args, **kwargs):
         QtGui.QApplication.__init__(self, *args, **kwargs)
         self._task_queue = Queue.Queue()
+        
+    def create_window_and_run(self, shutdown):
+        self.window = memdam.recorder.application.Window(shutdown)
+        #TODO: clean up this exit process stuff below. Maybe have to do something different on windows. Write better comment
+        #signal.signal(signal.SIGINT, lambda x,y: self.window.doQuit())
+        signal.signal(signal.SIGINT, signal.SIG_DFL)  #see here: http://stackoverflow.com/questions/5160577/ctrl-c-doesnt-work-with-pyqt
+        self.window.show()
+        self.window.raise_()
+        return self.exec_()
     
     def process_external_commands(self):
         """
         This will run functions from the main loop and fulfill your futures.
         """
         try:
-            #memdam.log.info("Processing commands")
-            data = self._task_queue.get_nowait()
-            if data != None:
-                func, future = data
-                try:
-                    if future.set_running_or_notify_cancel():
-                        future.set_result(func())
-                except Exception, e:
-                    future.set_exception(e)
-        except Queue.Empty:
-            pass
-        except Exception, e:
-            memdam.common.error.report(e)
-        finally:
-            QtCore.QTimer.singleShot(0, self.process_external_commands)
+            try:
+                #memdam.log.info("Processing commands")
+                data = self._task_queue.get_nowait()
+                if data != None:
+                    func, future = data
+                    try:
+                        if future.set_running_or_notify_cancel():
+                            future.set_result(func())
+                    except Exception, e:
+                        future.set_exception(e)
+            except Queue.Empty:
+                pass
+            except KeyboardInterrupt:
+                self.window.doQuit()
+            except Exception, e:
+                memdam.common.error.report(e)
+            finally:
+                QtCore.QTimer.singleShot(0, self.process_external_commands)
+        except KeyboardInterrupt:
+            self.window.doQuit()
 
     def add_task(self, func):
         future = concurrent.futures.Future()
@@ -72,7 +87,6 @@ class Window(QtGui.QDialog):
 
         self.setWindowTitle("Systray")
         self.resize(400, 300)
-
 
     def setVisible(self, visible):
         self.minimizeAction.setEnabled(visible)

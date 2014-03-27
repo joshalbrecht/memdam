@@ -30,10 +30,7 @@ class User(memdam.recorder.user.api.User):
             sys.exit(1)
 
         PyQt4.QtGui.QApplication.setQuitOnLastWindowClosed(False)
-        window = memdam.recorder.application.Window(shutdown)
-        window.show()
-        window.raise_()
-        return self.app.exec_()
+        return self.app.create_window_and_run(shutdown)
 
 class InputDialog(PyQt4.QtGui.QDialog):
     '''
