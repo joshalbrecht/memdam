@@ -6,7 +6,6 @@ A daemon that will collect and transmit events for as many types of data as poss
 import sys
 import os
 import logging
-import time
 import argparse
 
 import apscheduler.scheduler
