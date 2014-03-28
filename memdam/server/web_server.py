@@ -1,11 +1,12 @@
 
 import sys
 import os
-import copy
 import argparse
+import logging
 
 import cherrypy
 import cherrypy.wsgiserver
+# pylint: disable=W0401,W0622,W0614
 from funcy import *
 
 import memdam.server.admin
@@ -34,15 +35,38 @@ def _update_config_source(source, config, name):
         else:
             source[key] = (config[key], name)
 
-def _format_config_source(source):
+def _format_config_value(value, key):
+    '''
+    Hides secret configuration variables when printing config.
+    '''
+    if key in ('SECRET_KEY',):
+        return '******'
+    return value
+
+def _format_config_source(source, ordered_sources):
     '''
     :returns: string (describing the source and value of each configuration variable)
     '''
-    formatted_values = '\n'.join(['    %s=%s (from %s)' % (key, source[key][0], source[key][1]) \
-                                  for key in sorted(source.keys())])
-    return 'Current Configuration:\n' + formatted_values
+    grouped_keys = group_by(lambda key: source[key][1], source.keys())
+    formatted_group_configs = []
+    for source_name in ordered_sources:
+        if source_name in grouped_keys:
+            keys_for_source = grouped_keys[source_name]
+            formatted_values = '\n'.join(['    %s=%s' % (key, _format_config_value(source[key][0], key)) \
+                                          for key in sorted(keys_for_source)])
+            formatted_group_configs.append('%s:\n%s' % (source_name, formatted_values))
+    return 'Current Configuration:\n' + '\n'.join(formatted_group_configs)
 
 def _parse_config(kwargs):
+    '''
+    Parses the configuration from a variety of sources into memdam.server.web.app.config
+
+    Also applies the settings to the logger because that should happen as early as possible in the
+    process. Probably should not make calls to memdam.log before this.
+
+    :param kwargs: a dictionary of the config arguments that should be applied for this run.
+    :type  kwargs: dict
+    '''
     #track which configuration came from where for our own sanity:
     config_source = {}
     _update_config_source(config_source, memdam.server.web.app.config, 'DEFAULT')
@@ -55,15 +79,21 @@ def _parse_config(kwargs):
     #if the name of a config file was defined in an environment variable, load those settings
     _load_config_from_file(os.environ.get('YOURAPPLICATION_SETTINGS', None), config_source)
 
-    print(_format_config_source(config_source))
-    #TODO: maybe log also, right after applying settings to log?
+    ordered_sources = remove(lambda x: x == None, ('DEFAULT', kwargs.get('CONFIG_FILE', None), 'KWARGS', os.environ.get('YOURAPPLICATION_SETTINGS', None)))
+    config_message = _format_config_source(config_source, ordered_sources)
+    print(config_message)
 
     #fix up the logger
     memdam.log = memdam.server.web.urls.app.logger
     memdam.hack_logger(memdam.log)
+    memdam.log.setLevel(getattr(logging, memdam.server.web.app.config['LOG_LEVEL']))
+    memdam.log.info(config_message)
 
 def _run_server():
-
+    '''
+    Runs the server (in production WSGI mode or in debug mode as determined by the RUN_WSGI_SERVER
+    config flag)
+    '''
     if memdam.server.web.app.config['RUN_WSGI_SERVER']:
         address = memdam.server.web.app.config['LISTEN_ADDRESS']
         port = memdam.server.web.app.config['LISTEN_PORT']
@@ -88,6 +118,10 @@ def test_run(username, password, **kwargs):
     _run_server()
 
 def read_commandline_args():
+    '''
+    :returns: a mapping from key to value for the arguments defined on the commandline
+    :rtype: dict(string, string)
+    '''
     parser = argparse.ArgumentParser(description='Run the chronographer server.')
     parser.add_argument('--port', dest='LISTEN_PORT', type=int,
                         help='the port on which to listen')
