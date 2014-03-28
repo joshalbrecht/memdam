@@ -72,6 +72,8 @@ def function_to_call(thing):
     class_to_call = ArbitraryClassWithFunctionsAndData(None, value_class)
     return class_to_call.some_function("a", "b", kwarg2=re.compile("great regex"))
 
+class SpecialException(Exception): pass
+
 class ArbitraryClassWithFunctionsAndData(memdam.Base):
     def __init__(self, val1, val2):
         self.val1 = val1
@@ -85,7 +87,7 @@ class ArbitraryClassWithFunctionsAndData(memdam.Base):
         return "inner return value string thingy"
 
     def uh_oh(self, data):
-        raise Exception("Data is too data-y: " + str(data))
+        raise SpecialException("Data is too data-y: " + str(data))
 
 @nose.tools.with_setup(setup_tracer_test, teardown_tracer_test)
 def test_tracing():
@@ -93,7 +95,7 @@ def test_tracing():
     nose.tools.eq_(_trace_call_count, 14)
 
 @nose.tools.with_setup(setup_tracer_test, teardown_tracer_test)
-@nose.tools.raises(Exception)
+@nose.tools.raises(SpecialException)
 def test_exception_tracing():
     ArbitraryClassWithFunctionsAndData("x", 234876).uh_oh("some more data")
 
@@ -109,9 +111,14 @@ if __name__ == '__main__':
     test_tracing()
     teardown_tracer_test()
 
-    #setup_tracer_test()
-    #test_exception_tracing()
-    #teardown_tracer_test()
+    setup_tracer_test()
+    try:
+        test_exception_tracing()
+    except SpecialException:
+        pass
+    else:
+        raise Exception("was supposed to fail previously!")
+    teardown_tracer_test()
 
     teardown()
 
