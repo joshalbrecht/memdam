@@ -1,4 +1,5 @@
 
+import re
 import types
 import os
 import os.path
@@ -109,13 +110,35 @@ def debugrepr(obj, complete=True):
 
 _FILE_LINES = {}
 def _get_file_lines_and_cache(file_name):
-    if file_name not in _FILE_LINES:    
+    if file_name not in _FILE_LINES:
         with open(file_name, 'rb') as infile:
             _FILE_LINES[file_name] = infile.readlines()
     return _FILE_LINES[file_name]
 
-#TODO: use a config file that defines modules that we are interested in. Any time a call is going into OR out of that module, log it, otherwise, ignore
-#eg, that filename should be passed in with something like --trace-modules=filename.txt
+#TODO: maybe someday have a difference between full traces and lighter traces (in terms of the amount of data logged for each). Would make it more useful for 3rd party modules too, could even log all of their stuff.
+_TRACE_EXPRESSIONS = None
+_TRACE_MATCHES = {}
+def _get_and_cache_trace_list_matched(file_name):
+    global _TRACE_EXPRESSIONS
+    if _TRACE_EXPRESSIONS is None:
+        #this is here to avoid the silly race condition where two threads run the previous line together, before running the next one. By making a separate array and assigning to _TRACE_MATCHES, it should be atomic and we should get a single consistent array...
+        expressions = []
+        for arg in sys.argv:
+            if arg.startswith('--trace-file='):
+                trace_file = arg.split('=')[1]
+                with open(trace_file, 'rb') as infile:
+                    for line in infile.readlines():
+                        expressions.append(re.compile(line))
+        _TRACE_EXPRESSIONS = expressions
+    if file_name not in _TRACE_MATCHES:
+        result = False
+        for expr in _TRACE_EXPRESSIONS:
+            if expr.match(file_name):
+                result = True
+                break
+        _TRACE_MATCHES[file_name] = result
+    return _TRACE_MATCHES[file_name]
+
 def _log_entrance_and_exit(f, *args, **kwargs):
     current_frame = sys._getframe()
     if current_frame.f_back is None or current_frame.f_back.f_back is None:
@@ -126,7 +149,12 @@ def _log_entrance_and_exit(f, *args, **kwargs):
         calling_code = calling_frame.f_code
         caller_file_name = calling_code.co_filename
         caller_line_number = calling_frame.f_lineno
-    should_log = f.__name__ != '_debugrepr'
+    callee_file_name = f.__code__.co_filename
+    caller_should_be_traced = _get_and_cache_trace_list_matched(caller_file_name)
+    callee_should_be_traced = _get_and_cache_trace_list_matched(callee_file_name)
+    trace_list_matched = caller_should_be_traced or callee_should_be_traced
+    is_restricted_name = f.__name__ == '_debugrepr'
+    should_log = trace_list_matched and not is_restricted_name
     if should_log:
         caller_file_lines = _get_file_lines_and_cache(caller_file_name)
         call_line = caller_file_lines[caller_line_number-1].strip()
@@ -174,4 +202,3 @@ class Base(object):
         encoded_attrs = ['"%s": %s' % (attr, debugrepr(getattr(self, attr))) \
                          for attr in self.__dict__]
         return '%s({%s})' % (self.__class__.__name__, ', '.join(encoded_attrs))
-
