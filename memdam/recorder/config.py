@@ -3,6 +3,9 @@ import os
 import json
 import platform
 
+# pylint: disable=W0401,W0622,W0614
+from funcy import *
+
 import memdam.common.utils
 
 class Config(object):
@@ -26,7 +29,20 @@ class Config(object):
 
     def save(self):
         with open(self.filename, 'wb') as outfile:
-            outfile.write(json.dumps(self.data, sort_keys=True, indent=4, separators=(',', ': ')))
+            outfile.write(self.to_json())
+
+    def to_json(self):
+        return json.dumps(self.data, sort_keys=True, indent=4, separators=(',', ': '))
+
+    def format_for_log(self):
+        def password_filter(data):
+            '''replace passwords with ****'''
+            key, value = data
+            if 'password' in key:
+                value = '*****'
+            return (key, value)
+        filtered_data = walk(password_filter, self.data)
+        return json.dumps(filtered_data, sort_keys=True, indent=4, separators=(',', ': '))
 
 def get_default_config(filename):
     """
@@ -44,4 +60,4 @@ def get_default_config(filename):
     server_url = u'http://127.0.0.1:5000/api/v1/'
     if memdam.common.utils.is_installed():
         server_url = u'http://ec2-54-201-240-100.us-west-2.compute.amazonaws.com:5000/api/v1/'
-    return Config(filename, data_folder=data_folder, device_id=device_id, server_url=server_url)
+    return Config(filename, data_folder=data_folder, device_id=device_id, server_url=server_url, log_level='DEBUG')

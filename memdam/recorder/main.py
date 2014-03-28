@@ -1,7 +1,7 @@
 
-"""
+'''
 A daemon that will collect and transmit events for as many types of data as possible.
-"""
+'''
 
 import sys
 import os
@@ -54,7 +54,7 @@ def all_collectors():
 
 def schedule(sched, collector):
     def collect():
-        """Scheduler only calls functions without arguments"""
+        '''Scheduler only calls functions without arguments'''
         memdam.log.debug("Collecting events from %s" % (collector))
         collector.collect_and_persist(1)
     sched.add_cron_job(collect, second='0,10,20,30,40,50')
@@ -68,15 +68,23 @@ def create_collectors(sched, collector_kwargs):
     return collectors
 
 def run(user, config):
-    """Run the daemon. Blocks."""
+    '''Run the daemon. Blocks.'''
+
+    if not memdam.is_threaded_logging_setup():
+        handlers = [memdam.STDOUT_HANDLER]
+        log_level_name = config.get(u'log_level')
+        if log_level_name == 'TRACE':
+            log_level = memdam.TRACE
+        else:
+            log_level = getattr(logging, log_level_name)
+        memdam.common.parallel.setup_log('mainlog', level=log_level, handlers=handlers)
+
+    memdam.log.info(config.format_for_log())
+
     local_folder = config.get(u'data_folder')
     username = config.get(u'username')
     password = config.get(u'password')
     server_url = config.get(u'server_url')
-
-    if not memdam.is_threaded_logging_setup():
-        handlers = [memdam.STDOUT_HANDLER]
-        memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
 
     #create both local and remote blob and event stores
     local_blob_folder = os.path.join(local_folder, "blobs")
@@ -106,14 +114,14 @@ def run(user, config):
     strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
 
     def start_collectors():
-        """Starts all of the actual processing threads"""
+        '''Starts all of the actual processing threads'''
         for collector in collectors:
             collector.start()
         synchronizer.start()
         strand.start()
 
     def clean_shutdown():
-        """Call this to cancel all of the workers and exit cleanly"""
+        '''Call this to cancel all of the workers and exit cleanly'''
         #stop scheduling the collection of more events
         sched.shutdown()
         #stop each collector
@@ -133,7 +141,7 @@ def run(user, config):
         raise
 
 def run_as_script():
-    """Parses commandline arguments, converting them into the appropriate config variables"""
+    '''Parses commandline arguments, converting them into the appropriate config variables'''
     parser = argparse.ArgumentParser(description='Run the chronographer server.')
     parser.add_argument('--config', dest='config', type=str,
                         help='the path to a file with additional configuration')
