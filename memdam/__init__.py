@@ -123,12 +123,11 @@ def _get_and_cache_trace_list_matched(file_name):
     if _TRACE_EXPRESSIONS is None:
         #this is here to avoid the silly race condition where two threads run the previous line together, before running the next one. By making a separate array and assigning to _TRACE_MATCHES, it should be atomic and we should get a single consistent array...
         expressions = []
-        for arg in sys.argv:
-            if arg.startswith('--trace-file='):
-                trace_file = arg.split('=')[1]
-                with open(trace_file, 'rb') as infile:
-                    for line in infile.readlines():
-                        expressions.append(re.compile(line))
+        if 'TRACE_FILE' in os.environ:
+            trace_file = os.environ['TRACE_FILE']
+            with open(trace_file, 'rb') as infile:
+                for line in infile.readlines():
+                    expressions.append(re.compile(line))
         _TRACE_EXPRESSIONS = expressions
     if file_name not in _TRACE_MATCHES:
         result = False
@@ -167,15 +166,15 @@ def _log_entrance_and_exit(f, *args, **kwargs):
         result = f(*args, **kwargs)
     except Exception, e:
         if should_log:
-            log.trace('%s:%s !! %s' % (exception_file_name, exception_line_number, debugrepr(e)))
-        raise e
+            log.trace('%s:%s /\\ %s' % (caller_file_name, caller_line_number, call_line))
+            log.trace('    !! ' + e.__class__.__name__ + ": " + str(e))
+        raise
     if should_log:
         log.trace('%s:%s /\\ %s' % (caller_file_name, caller_line_number, call_line))
         log.trace('    ' + debugrepr(result))
     return result
 
-#TODO: would probably be good to make this purely opt-in, like the last flag in sys.argv has to be --debug or something...
-#and apply that below as well
+#TODO: would be ideal to split all of this out into its own standalone module for manipulating logging at runtime.
 def tracer(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):

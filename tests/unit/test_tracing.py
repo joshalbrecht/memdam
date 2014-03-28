@@ -3,7 +3,6 @@ import tempfile
 import re
 import types
 import os
-import sys
 
 import nose.tools
 
@@ -30,7 +29,7 @@ def clear_log():
     """
     global _original_trace_function, _trace_call_count
     _trace_call_count = 0
-    memdam.log = _original_trace_function
+    memdam.log.trace = _original_trace_function
 
 _TRACE_FILE_NAME = memdam.common.utils.make_temp_path()
 
@@ -55,7 +54,7 @@ def setup_tracer_test(regexes=(".*memdam.*",)):
         outfile.writelines(regexes)
     memdam._TRACE_EXPRESSIONS = None
     memdam._TRACE_MATCHES = {}
-    sys.argv = sys.argv + ['--trace-file=' + _TRACE_FILE_NAME]
+    os.environ['TRACE_FILE'] = _TRACE_FILE_NAME
 
 def teardown_tracer_test():
     """
@@ -64,7 +63,7 @@ def teardown_tracer_test():
     clear_log()
     memdam._TRACE_EXPRESSIONS = None
     memdam._TRACE_MATCHES = {}
-    sys.argv = sys.argv[-1:]
+    del os.environ['TRACE_FILE']
 
 @memdam.tracer
 def function_to_call(thing):
@@ -95,14 +94,22 @@ def test_tracing():
     nose.tools.eq_(_trace_call_count, 14)
 
 @nose.tools.with_setup(setup_tracer_test, teardown_tracer_test)
-@nose.tools.raises(SpecialException)
 def test_exception_tracing():
-    ArbitraryClassWithFunctionsAndData("x", 234876).uh_oh("some more data")
+    try:
+        ArbitraryClassWithFunctionsAndData("x", 234876).uh_oh("some more data")
+    except SpecialException:
+        nose.tools.eq_(_trace_call_count, 4)
+    else:
+        raise Exception("Was supposed to raise a SpecialException!")
 
-#TODO: test that the logic for applying to only particular files/modules works
-#might want to consume the sys.argv that we use so I don't have to modify the mains...
 def test_specific_module_tracing():
-    pass
+    """
+    test that the logic for applying to only particular files/modules works
+    """
+    setup_tracer_test((".*memdam.common.*",))
+    memdam.common.utils.is_windows()
+    nose.tools.eq_(_trace_call_count, 3)
+    teardown_tracer_test()
 
 if __name__ == '__main__':
     setup()
@@ -112,13 +119,9 @@ if __name__ == '__main__':
     teardown_tracer_test()
 
     setup_tracer_test()
-    try:
-        test_exception_tracing()
-    except SpecialException:
-        pass
-    else:
-        raise Exception("was supposed to fail previously!")
+    test_exception_tracing()
     teardown_tracer_test()
 
-    teardown()
+    test_specific_module_tracing()
 
+    teardown()
