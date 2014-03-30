@@ -1,5 +1,7 @@
 
-class Eventstore(object):
+import memdam
+
+class Eventstore(memdam.Base):
     """
     An interface to the persistance services for storing ALL events.
     """

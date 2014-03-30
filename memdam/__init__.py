@@ -53,6 +53,7 @@ log = SIMPLE_LOGGER
 #note: just for pylint
 log.trace = lambda x: None
 hack_logger(log)
+logging.addLevelName(TRACE, "TRACE")
 
 def use_debug_logger():
     """Convenience function. Call this to log all statements (TRACE and above) to STDOUT"""

@@ -14,10 +14,15 @@ import memdam.common.field
 import memdam.common.event
 import memdam.eventstore.api
 
-#Just for debugging
+@memdam.tracer
 def execute_sql(cur, sql, args=()):
-    memdam.log.trace("Executing: %s    ARGS=%s" % (sql, args))
+    '''Just for debugging'''
     return cur.execute(sql, args)
+
+@memdam.tracer
+def execute_many(cur, sql, values=()):
+    '''Just for debugging'''
+    cur.executemany(sql, values)
 
 #TODO: validate the various bits of data--should not start or end with _, should not contain __, should only contain numbers and digits
 #also have to validate all of the things that we are inserting in a raw way
@@ -165,7 +170,6 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         if self.folder == ":memory:":
             return self._get_or_create_memory_connection()
         db_file = os.path.join(self.folder, table_name + Eventstore.EXTENSION)
-        memdam.log.trace("Connecting to %s in read only mode? %s" % (db_file, read_only))
         if read_only:
             conn = sqlite3.connect(db_file, isolation_level="DEFERRED")
             #TODO: set PRAGMA read_uncommitted = TRUE;
@@ -178,7 +182,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         """
         Save all events of the same type to the database at once
         """
-        memdam.log.trace("Saving %s events to %s" % (len(events), table_name))
+        memdam.log.debug("Saving %s events to %s" % (len(events), table_name))
         if len(events) <= 0:
             return
         assert SqliteColumn.SQL_NAME_REGEX.match(table_name), "Invalid name for table: %s" % (table_name)
@@ -211,7 +215,6 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         :type  cur: sqlite3.Cursor
         :returns: a list of SqliteColumn's
         """
-        memdam.log.trace("Looking at existing columns in %s" % (table_name,))
         columns = {}
         execute_sql(cur, "PRAGMA table_info(%s);" % (table_name,))
         allrows = cur.fetchall()
@@ -219,7 +222,6 @@ class Eventstore(memdam.eventstore.api.Eventstore):
             self._create_table(cur, table_name)
             execute_sql(cur, "PRAGMA table_info(%s);" % (table_name,))
             allrows = cur.fetchall()
-        memdam.log.trace("Table %s info rows: %s" % (table_name, allrows,))
         for row in allrows:
             #ignore our unique id row
             if row[1] == '_id':
@@ -232,7 +234,6 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         """
         Create a table with the default column (sample_time)
         """
-        memdam.log.trace("Creating default column for %s" % (table_name,))
         execute_sql(cur, "PRAGMA encoding = 'UTF-8';")
         execute_sql(cur, "CREATE TABLE %s(_id INTEGER PRIMARY KEY, time__time INTEGER, id__id STRING);" % (table_name,))
         execute_sql(cur, "CREATE INDEX %s__time__time__asc ON %s (time__time ASC);" % (table_name, table_name))
@@ -253,9 +254,6 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         """
         Modify the schema of the table to include new columns or indices if necessary
         """
-
-        memdam.log.trace("Should have these columns: %s" % (required_columns,))
-        memdam.log.trace("Has these columns: %s" % (existing_column_map,))
 
         for required_column in required_columns:
             if required_column.name in existing_column_map:
@@ -283,8 +281,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
             if memdam.common.event.Event.field_type(key) == memdam.common.field.FieldType.TEXT:
                 sql = "INSERT INTO %s__%s__docs (docid,data) VALUES (?,?);" % (table_name, key)
                 values = [(next_row_id + i, getattr(events[i], key, None)) for i in range(0, len(events))]
-                memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
-                cur.executemany(sql, values)
+                execute_many(cur, sql, values)
 
         #finally, insert the actual events into the main table
         column_names = list(key_names)
@@ -292,10 +289,10 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         value_tuple_string = "(" + ", ".join(['?'] * (len(column_names)+1)) + ")"
         sql = "INSERT INTO %s (_id, %s) VALUES %s;" % (table_name, column_name_string, value_tuple_string)
         values = [make_value_tuple(events[i], key_names, next_row_id + i) for i in range(0, len(events))]
-        memdam.log.trace("Executing Many: %s    ARGS=%s" % (sql, values))
-        cur.executemany(sql, values)
+        execute_many(cur, sql, values)
 
 #TODO: this whole notion of filters needs to be better thought out
+@memdam.tracer
 def _separate_filters(filters):
     field_filters = []
     namespaces = []
@@ -310,17 +307,20 @@ def _separate_filters(filters):
             field_filters.append(f)
     return field_filters, namespaces
 
+@memdam.tracer
 def _matches_namespace_filters(table_name, query):
     _, namespaces = _separate_filters(query.filters)
     if len(namespaces) <= 0:
         return True
     return table_name_to_namespace(table_name) in namespaces
 
+@memdam.tracer
 def _get_field_filter_string(field_filters):
     #TODO (security): lol so bad.
     filter_string = ' AND '.join(('%s %s %s' % (f.lhs, f.operator, f.rhs) for f in field_filters))
     return filter_string, ()
 
+@memdam.tracer
 def make_value_tuple(event, key_names, event_id):
     """Turns an event into a sql value tuple"""
     values = [event_id]
@@ -341,19 +341,25 @@ def make_value_tuple(event, key_names, event_id):
         values.append(value)
     return values
 
+@memdam.tracer
 def convert_time_to_long(value):
     """turns a datetime.datetime into a long"""
     return long(round(1000000.0 * (value - EPOCH_BEGIN).total_seconds()))
 
+@memdam.tracer
 def convert_long_to_time(value):
     """turns a long into a datetime.datetime"""
     return EPOCH_BEGIN + datetime.timedelta(microseconds=value)
 
+@memdam.tracer
 def table_name_to_namespace(table_name):
     return table_name.replace(u'_', u'.')
+
+@memdam.tracer
 def namespace_to_table_name(namespace):
     return namespace.replace(u'.', u'_')
 
+@memdam.tracer
 def _create_event_from_row(row, names, namespace, conn):
     """returns a memdam.common.event.Event, generated from the row"""
     data = {}
@@ -384,7 +390,7 @@ def _create_event_from_row(row, names, namespace, conn):
 
 EPOCH_BEGIN = datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)
 
-class SqliteColumn(object):
+class SqliteColumn(memdam.Base):
     """
     Represents a column in sqlite.
     Note that the name here is the raw key name (eg, without the data type or index)
@@ -477,6 +483,7 @@ class SqliteColumn(object):
         column_name = row[1]
         return SqliteColumn(column_name, table_name)
 
+@memdam.tracer
 def execute_with_retries(command, num_retries=3, retry_wait_time=0.1, retry_growth_rate=2.0):
     """
     Try to accomplish the command a few times before giving up.

@@ -1,11 +1,13 @@
 
+import memdam
+
 class MissingBlob(Exception):
     """
     Raised if a blob is missing where it is expected.
     """
 
 #TODO: go ensure that the operations for each implementation are atomic
-class Blobstore(object):
+class Blobstore(memdam.Base):
     """
     Interface for file storage.
     Each operation should be atomic, and calling a bunch of operations for the same id should not
