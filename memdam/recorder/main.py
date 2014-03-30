@@ -78,6 +78,10 @@ def run(user, config):
             log_level = getattr(logging, log_level_name)
             assert 'TRACE_FILE' not in os.environ, 'Don\'t set TRACE_FILE without changing the log level!'
         memdam.common.parallel.setup_log('mainlog', level=log_level, handlers=handlers)
+        #TODO: why do I need this? :( wtf is adding this handler? my guess is that it's apscheduler...
+        #see this for slightly more reasonable options:
+        #http://docs.python.org/2/howto/logging.html#configuring-logging
+        logging.getLogger().removeHandler(logging.getLogger().handlers[0])
 
     memdam.log.info(config.format_for_log())
 
