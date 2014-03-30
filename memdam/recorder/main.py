@@ -39,33 +39,52 @@ try:
 except ImportError, e:
     pass
 
+@memdam.tracer
 def all_collectors():
-    #TODO: no more commenting out of code!  Make things configurable instead.
-    collectors = [#memdam.recorder.collector.systemstats.SystemStats,
+    '''
+    :returns: a list of all of all collectors that are possibly supported by this operating system
+    '''
+    collectors = [memdam.recorder.collector.systemstats.SystemStats,
                   memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
     if memdam.common.utils.is_windows():
         collectors += []
     elif memdam.common.utils.is_osx():
         collectors += [memdam.recorder.collector.osx.webcam.WebcamCollector]
     else:
-        collectors += []#[memdam.recorder.collector.linux.webcam.WebcamCollector]
+        collectors += [memdam.recorder.collector.linux.webcam.WebcamCollector]
     return tuple(collectors)
 
+@memdam.tracer
 def schedule(sched, collector):
+    '''
+    Schedules a collector to be called at a particular interval
+    '''
     def collect():
         '''Scheduler only calls functions without arguments'''
         memdam.log.debug("Collecting events from %s" % (collector))
         collector.collect_and_persist(1)
     sched.add_cron_job(collect, second='0,10,20,30,40,50')
 
-def create_collectors(sched, collector_kwargs):
+@memdam.tracer
+def create_collectors(sched, config, state_folder, eventstore, blobstore):
+    '''Schedule a bunch of collectors based on the config'''
     collectors = []
     for collector_class in all_collectors():
-        collector = collector_class(**collector_kwargs)
-        schedule(sched, collector)
-        collectors.append(collector)
+        collector_name = collector_class.__name__
+        collector_config = config['collectors'].get(collector_name, None)
+        if collector_config:
+            state_file = os.path.join(state_folder, collector_name + '.json')
+            state_store = memdam.recorder.state.StateStore(state_file)
+            collector = collector_class(config=collector_config,
+                                        state_store=state_store,
+                                        eventstore=eventstore,
+                                        blobstore=blobstore)
+            #TODO: pull the schedule out of the config
+            schedule(sched, collector)
+            collectors.append(collector)
     return collectors
 
+@memdam.tracer
 def run(user, config):
     '''Run the daemon. Blocks.'''
 
@@ -93,8 +112,9 @@ def run(user, config):
     #create both local and remote blob and event stores
     local_blob_folder = os.path.join(local_folder, "blobs")
     local_event_folder = os.path.join(local_folder, "events")
+    state_folder = os.path.join(local_folder, "state")
     #TODO: remember to clear these for testing probably...
-    for folder in (local_event_folder, local_blob_folder):
+    for folder in (local_event_folder, local_blob_folder, state_folder):
         if not os.path.exists(folder):
             os.makedirs(folder)
 
@@ -106,10 +126,7 @@ def run(user, config):
 
     #schedule various collectors
     sched = apscheduler.scheduler.Scheduler(standalone=True)
-
-    #TODO: schedule a bunch of collectors based on the config
-    collector_kwargs = dict(config=config, state_store=None, eventstore=local_events, blobstore=local_blobs)
-    collectors = create_collectors(sched, collector_kwargs)
+    collectors = create_collectors(sched, config, state_folder, local_events, local_blobs)
 
     #start the synchronizer in the background
     synchronizer = memdam.recorder.sync.Synchronizer(local_events, remote_events, local_blobs, remote_blobs)
@@ -117,6 +134,7 @@ def run(user, config):
     #start the scheduler in the background
     strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
 
+    @memdam.tracer
     def start_collectors():
         '''Starts all of the actual processing threads'''
         for collector in collectors:
@@ -124,6 +142,7 @@ def run(user, config):
         synchronizer.start()
         strand.start()
 
+    @memdam.tracer
     def clean_shutdown():
         '''Call this to cancel all of the workers and exit cleanly'''
         #stop scheduling the collection of more events
@@ -144,6 +163,7 @@ def run(user, config):
         clean_shutdown()
         raise
 
+@memdam.tracer
 def run_as_script():
     '''Parses commandline arguments, converting them into the appropriate config variables'''
     parser = argparse.ArgumentParser(description='Run the chronographer server.')
