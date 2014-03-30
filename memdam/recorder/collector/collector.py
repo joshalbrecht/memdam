@@ -2,11 +2,12 @@
 import os
 import uuid
 
+import memdam
 import memdam.common.error
 import memdam.common.field
 import memdam.common.validation
 
-class Collector(object):
+class Collector(memdam.Base):
     """
     Abstract class.
     Overriden by all collectors, which are responsible for gathering all types of data.

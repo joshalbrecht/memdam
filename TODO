@@ -1,4 +1,6 @@
 
+remove trace from sql or figure out how to help with that...
+
 test that the collector works
 test that we can look at the actual events in some sensible way
 distribute to initial users

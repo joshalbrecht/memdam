@@ -1,3 +1,6 @@
+#from me. silly trace files
+*.trace
+
 *.DS_Store
 
 *.py[cod]

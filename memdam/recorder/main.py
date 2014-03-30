@@ -76,6 +76,7 @@ def run(user, config):
             log_level = memdam.TRACE
         else:
             log_level = getattr(logging, log_level_name)
+            assert 'TRACE_FILE' not in os.environ, 'Don\'t set TRACE_FILE without changing the log level!'
         memdam.common.parallel.setup_log('mainlog', level=log_level, handlers=handlers)
 
     memdam.log.info(config.format_for_log())

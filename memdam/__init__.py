@@ -127,7 +127,9 @@ def _get_and_cache_trace_list_matched(file_name):
             trace_file = os.environ['TRACE_FILE']
             with open(trace_file, 'rb') as infile:
                 for line in infile.readlines():
-                    expressions.append(re.compile(line))
+                    data = line.strip()
+                    if data:
+                        expressions.append(re.compile(data))
         _TRACE_EXPRESSIONS = expressions
     if file_name not in _TRACE_MATCHES:
         result = False

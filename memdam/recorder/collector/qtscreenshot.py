@@ -6,6 +6,7 @@ import tempfile
 from PIL import Image
 
 import memdam
+import memdam.common.error
 import memdam.common.utils
 import memdam.common.event
 import memdam.common.parallel
@@ -26,17 +27,22 @@ class ScreenshotCollector(memdam.recorder.collector.collector.Collector):
     def _collect(self, limit):
         def snapshot_func():
             '''Needs to be called from the main thread so that it can take a screenshot of the desktop'''
-            import PyQt4.QtGui
-            _, screenshot_file = tempfile.mkstemp(".png")
-            PyQt4.QtGui.QPixmap.grabWindow(PyQt4.QtGui.QApplication.desktop().winId()).save(screenshot_file, 'png')
-            memdam.log.debug("Saved screenshot to " + screenshot_file)
-            screenshot = self._save_file(screenshot_file, consume_file=True)
-            if self._is_similar_to_last_image(screenshot):
-                return []
-            copied_location = memdam.common.utils.make_temp_path()
-            shutil.copy(screenshot, copied_location)
-            self._last_image = copied_location
-            return [memdam.common.event.new(u"com.memdam.screenshot", data__file=screenshot)]
+            try:
+                import PyQt4.QtGui
+                _, screenshot_file = tempfile.mkstemp(".png")
+                PyQt4.QtGui.QPixmap.grabWindow(PyQt4.QtGui.QApplication.desktop().winId()).save(screenshot_file, 'png')
+                memdam.log.debug("Saved screenshot to " + screenshot_file)
+                if self._is_similar_to_last_image(screenshot_file):
+                    os.remove(screenshot_file)
+                    return []
+                copied_location = memdam.common.utils.make_temp_path()
+                shutil.copy(screenshot_file, copied_location)
+                self._last_image = copied_location
+                screenshot = self._save_file(screenshot_file, consume_file=True)
+                return [memdam.common.event.new(u"com.memdam.screenshot", data__file=screenshot)]
+            except Exception, e:
+                memdam.common.error.report(e)
+                raise
         future = memdam.recorder.application.app().add_task(snapshot_func)
         return future.result()
 
