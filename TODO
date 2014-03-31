@@ -2,6 +2,7 @@
 finish configuration for launching collectors
 create integration tests for the collectors
 separate out the AOP logging stuff into its own module
+    actually, should probably replace with any number of existing solutions (see open tabs)
 test that we can look at the actual events in some sensible way
 distribute to initial users
 
