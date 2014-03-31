@@ -21,6 +21,7 @@ import memdam.blobstore.https
 import memdam.eventstore.sqlite
 import memdam.eventstore.https
 import memdam.recorder.config
+import memdam.recorder.state
 import memdam.recorder.collector.systemstats
 import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.sync
@@ -71,8 +72,8 @@ def create_collectors(sched, config, state_folder, eventstore, blobstore):
     collectors = []
     for collector_class in all_collectors():
         collector_name = collector_class.__name__
-        collector_config = config['collectors'].get(collector_name, None)
-        if collector_config:
+        collector_config = config.get('collectors').get(collector_name, None)
+        if collector_config is not None:
             state_file = os.path.join(state_folder, collector_name + '.json')
             state_store = memdam.recorder.state.StateStore(state_file)
             collector = collector_class(config=collector_config,
@@ -82,6 +83,7 @@ def create_collectors(sched, config, state_folder, eventstore, blobstore):
             #TODO: pull the schedule out of the config
             schedule(sched, collector)
             collectors.append(collector)
+    assert len(collectors) > 0, "Should really probably configure at least SOME collectors..."
     return collectors
 
 @memdam.tracer
