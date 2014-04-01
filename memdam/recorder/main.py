@@ -56,15 +56,23 @@ def all_collectors():
     return tuple(collectors)
 
 @memdam.tracer
-def schedule(sched, collector):
+def schedule(sched, collector, interval):
     '''
-    Schedules a collector to be called at a particular interval
+    Schedules a collector to be called at a particular interval.
+
+    :param sched: the scheduler which should call the collector at the particular interval.
+    :type  sched: apscheduler.scheduler.Scheduler
+    :param collector: the particular collector that should be called at the given interval
+    :type  collector: memdam.recorder.collector.collector.Collector
+    :param interval: arguments to be passed as keyward arguments to the add_cron_job method of the
+    scheduler
+    :type  interval: dict(string -> string)
     '''
     def collect():
         '''Scheduler only calls functions without arguments'''
         memdam.log.debug("Collecting events from %s" % (collector))
         collector.collect_and_persist(1)
-    sched.add_cron_job(collect, second='0,10,20,30,40,50')
+    sched.add_cron_job(collect, **interval)
 
 @memdam.tracer
 def create_collectors(sched, config, state_folder, eventstore, blobstore):
@@ -80,8 +88,8 @@ def create_collectors(sched, config, state_folder, eventstore, blobstore):
                                         state_store=state_store,
                                         eventstore=eventstore,
                                         blobstore=blobstore)
-            #TODO: pull the schedule out of the config
-            schedule(sched, collector)
+            interval = collector_config.get('interval')
+            schedule(sched, collector, interval)
             collectors.append(collector)
     assert len(collectors) > 0, "Should really probably configure at least SOME collectors..."
     return collectors
@@ -190,7 +198,18 @@ def run_as_script():
             os.makedirs(config_folder)
         config_file = os.path.join(config_folder, u'config.json')
         if not os.path.exists(config_file):
-            user.create_initial_config(config_file)
+            collector_config = {}
+            for collector_class in all_collectors():
+                collector_name = collector_class.__name__
+                #TODO: abstract the default collector configuration a bit...
+                #really how this should work is that collector should have a default configuration,
+                #then each subclass should have a default configuration, and THEN the user overrides
+                #should occur. This way we don't have to serialize so much of the configuration.
+                #when new collectors are added, just ask people if they want to add them (post-upgrade)
+                #when new keys are added to configurations, it should work out fine (will be added to one of the two defaults)
+                #if keys are renamed or deleted, need to have a migration step that loads the config, looks for things that are gone, and warns/renames
+                collector_config[collector_name] = dict(interval=dict(second='0,10,20,30,40,50'))
+            user.create_initial_config(config_file, collector_config)
     config = memdam.recorder.config.Config(config_file)
     run(user, config)
 

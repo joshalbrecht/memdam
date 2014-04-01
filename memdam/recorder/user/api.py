@@ -27,7 +27,7 @@ class User(object):
         :rtype: int
         """
 
-    def create_initial_config(self, filename):
+    def create_initial_config(self, filename, collector_config):
         """
         The user must define initial values for things like username, password, etc, and can use
         default values otherwise.
@@ -35,9 +35,8 @@ class User(object):
         This will be pretty much the first thing called when the application runs for the first
         time. Will be called when the main_loop is NOT running.
         """
-        default_config = memdam.recorder.config.get_default_config(filename)
+        default_config = memdam.recorder.config.get_default_config(filename, collector_config)
         username = self.prompt_user(u'Please enter your username')
         password = self.prompt_user(u'Please enter your password')
         new_config = memdam.recorder.config.Config(filename=filename, password=password, username=username, **default_config.data)
         new_config.save()
-

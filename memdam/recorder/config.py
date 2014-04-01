@@ -10,7 +10,9 @@ import memdam.common.utils
 
 class Config(object):
     """
-    Loads a json configuration
+    Loads a json configuration.
+
+    This class IS IMMUTABLE. Configuration should NOT be changed at runtime!
     """
 
     def __init__(self, filename=None, **kwargs):
@@ -44,7 +46,7 @@ class Config(object):
         filtered_data = walk(password_filter, self.data)
         return json.dumps(filtered_data, sort_keys=True, indent=4, separators=(',', ': '))
 
-def get_default_config(filename):
+def get_default_config(filename, collectors):
     """
     Note: this will/should probably return different values depending on if this is running
     from an installation or from a debug environment.
@@ -60,4 +62,4 @@ def get_default_config(filename):
     server_url = u'http://127.0.0.1:5000/api/v1/'
     if memdam.common.utils.is_installed():
         server_url = u'http://ec2-54-201-240-100.us-west-2.compute.amazonaws.com:5000/api/v1/'
-    return Config(filename, data_folder=data_folder, device_id=device_id, server_url=server_url, log_level='DEBUG')
+    return Config(filename, data_folder=data_folder, device_id=device_id, server_url=server_url, log_level='DEBUG', collectors=collectors)
