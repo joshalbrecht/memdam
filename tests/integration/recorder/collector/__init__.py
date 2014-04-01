@@ -35,6 +35,7 @@ class CollectorTestHarness(unittest.TestCase):
     def runTest(self):
         '''Runs the test. Just starts the collectors, asks for some events, and stops it'''
         error = None
+        result = None
         try:
             result = self.collector.collect_and_persist(10000000)
         # pylint: disable=W0703

@@ -84,12 +84,14 @@ class Collector(memdam.Base):
         """
         if limit <= 0:
             return
-        for event in self._collect(limit):
+        events = self._collect(limit)
+        for event in events:
             try:
                 self._eventstore.save([event])
             except Exception, e:
                 memdam.common.error.report(e)
         self.post_collect()
+        return events
 
     def _save_file(self, file_path, consume_file=False, generate_id=True):
         """
