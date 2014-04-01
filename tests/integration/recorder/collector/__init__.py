@@ -13,8 +13,8 @@ class CollectorTestHarness(unittest.TestCase):
     A simple test setup for collectors that handles all of the boilerplate.
     '''
 
-    def __init__(self, collector_class, config):
-        unittest.TestCase.__init__(self)
+    def __init__(self, collector_class, config, *args, **kwargs):
+        unittest.TestCase.__init__(self, *args, **kwargs)
         self.base_folder = memdam.common.utils.make_temp_path()
         blob_folder = os.path.join(self.base_folder, 'blobs')
         event_folder = os.path.join(self.base_folder, 'events')
