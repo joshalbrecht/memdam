@@ -40,7 +40,7 @@ try:
 except ImportError, e:
     pass
 
-@memdam.tracer
+@memdam.vtrace()
 def all_collectors():
     '''
     :returns: a list of all of all collectors that are possibly supported by this operating system
@@ -55,7 +55,7 @@ def all_collectors():
         collectors += [memdam.recorder.collector.linux.webcam.WebcamCollector]
     return tuple(collectors)
 
-@memdam.tracer
+@memdam.vtrace()
 def schedule(sched, collector, interval):
     '''
     Schedules a collector to be called at a particular interval.
@@ -74,7 +74,7 @@ def schedule(sched, collector, interval):
         collector.collect_and_persist(1)
     sched.add_cron_job(collect, **interval)
 
-@memdam.tracer
+@memdam.vtrace()
 def create_collectors(sched, config, state_folder, eventstore, blobstore):
     '''Schedule a bunch of collectors based on the config'''
     collectors = []
@@ -94,7 +94,7 @@ def create_collectors(sched, config, state_folder, eventstore, blobstore):
     assert len(collectors) > 0, "Should really probably configure at least SOME collectors..."
     return collectors
 
-@memdam.tracer
+@memdam.vtrace()
 def run(user, config):
     '''Run the daemon. Blocks.'''
 
@@ -144,7 +144,7 @@ def run(user, config):
     #start the scheduler in the background
     strand = memdam.common.parallel.create_strand("scheduler", sched.start, use_process=False)
 
-    @memdam.tracer
+    @memdam.vtrace()
     def start_collectors():
         '''Starts all of the actual processing threads'''
         for collector in collectors:
@@ -152,7 +152,7 @@ def run(user, config):
         synchronizer.start()
         strand.start()
 
-    @memdam.tracer
+    @memdam.vtrace()
     def clean_shutdown():
         '''Call this to cancel all of the workers and exit cleanly'''
         #stop scheduling the collection of more events
@@ -173,7 +173,7 @@ def run(user, config):
         clean_shutdown()
         raise
 
-@memdam.tracer
+@memdam.vtrace()
 def run_as_script():
     '''Parses commandline arguments, converting them into the appropriate config variables'''
     parser = argparse.ArgumentParser(description='Run the chronographer server.')

@@ -4,7 +4,7 @@ import sys
 import concurrent.futures
 import Queue
 
-from PyQt4 import QtCore, QtGui
+from PyQt4 import QtGui, QtCore
 
 import memdam
 import memdam.common.error

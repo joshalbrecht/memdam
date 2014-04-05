@@ -4,7 +4,7 @@ import math
 
 import memdam
 
-@memdam.tracer
+@memdam.vtrace()
 def rmsdiff(imageA, imageB):
     '''Calculate the root-mean-square difference between two images (converted to greyscale for sanity)
     Note that if you don't convert to greyscale, there are multiple bands that come back in the histogram

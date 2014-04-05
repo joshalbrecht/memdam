@@ -14,12 +14,12 @@ import memdam.common.field
 import memdam.common.event
 import memdam.eventstore.api
 
-@memdam.tracer
+@memdam.vtrace()
 def execute_sql(cur, sql, args=()):
     '''Just for debugging'''
     return cur.execute(sql, args)
 
-@memdam.tracer
+@memdam.vtrace()
 def execute_many(cur, sql, values=()):
     '''Just for debugging'''
     cur.executemany(sql, values)
@@ -292,7 +292,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         execute_many(cur, sql, values)
 
 #TODO: this whole notion of filters needs to be better thought out
-@memdam.tracer
+@memdam.vtrace()
 def _separate_filters(filters):
     field_filters = []
     namespaces = []
@@ -307,20 +307,20 @@ def _separate_filters(filters):
             field_filters.append(f)
     return field_filters, namespaces
 
-@memdam.tracer
+@memdam.vtrace()
 def _matches_namespace_filters(table_name, query):
     _, namespaces = _separate_filters(query.filters)
     if len(namespaces) <= 0:
         return True
     return table_name_to_namespace(table_name) in namespaces
 
-@memdam.tracer
+@memdam.vtrace()
 def _get_field_filter_string(field_filters):
     #TODO (security): lol so bad.
     filter_string = ' AND '.join(('%s %s %s' % (f.lhs, f.operator, f.rhs) for f in field_filters))
     return filter_string, ()
 
-@memdam.tracer
+@memdam.vtrace()
 def make_value_tuple(event, key_names, event_id):
     """Turns an event into a sql value tuple"""
     values = [event_id]
@@ -341,25 +341,25 @@ def make_value_tuple(event, key_names, event_id):
         values.append(value)
     return values
 
-@memdam.tracer
+@memdam.vtrace()
 def convert_time_to_long(value):
     """turns a datetime.datetime into a long"""
     return long(round(1000000.0 * (value - EPOCH_BEGIN).total_seconds()))
 
-@memdam.tracer
+@memdam.vtrace()
 def convert_long_to_time(value):
     """turns a long into a datetime.datetime"""
     return EPOCH_BEGIN + datetime.timedelta(microseconds=value)
 
-@memdam.tracer
+@memdam.vtrace()
 def table_name_to_namespace(table_name):
     return table_name.replace(u'_', u'.')
 
-@memdam.tracer
+@memdam.vtrace()
 def namespace_to_table_name(namespace):
     return namespace.replace(u'.', u'_')
 
-@memdam.tracer
+@memdam.vtrace()
 def _create_event_from_row(row, names, namespace, conn):
     """returns a memdam.common.event.Event, generated from the row"""
     data = {}
@@ -483,7 +483,7 @@ class SqliteColumn(memdam.Base):
         column_name = row[1]
         return SqliteColumn(column_name, table_name)
 
-@memdam.tracer
+@memdam.vtrace()
 def execute_with_retries(command, num_retries=3, retry_wait_time=0.1, retry_growth_rate=2.0):
     """
     Try to accomplish the command a few times before giving up.
