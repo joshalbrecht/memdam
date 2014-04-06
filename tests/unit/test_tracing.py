@@ -65,14 +65,14 @@ class ArbitraryClassWithFunctionsAndData(memdam.Base):
 @nose.tools.with_setup(mock_log, clear_log)
 def test_tracing():
     function_to_call([ArbitraryClassWithFunctionsAndData(4, 4), ArbitraryClassWithFunctionsAndData(4, 4), 1, 1, 1, 1, 2, 2, "suuuuuupppperlonnnngggstrrriinngggg" * 400])
-    nose.tools.eq_(_trace_call_count, 16)
+    nose.tools.eq_(_trace_call_count, 6)
 
 @nose.tools.with_setup(mock_log, clear_log)
 def test_exception_tracing():
     try:
         ArbitraryClassWithFunctionsAndData("x", 234876).uh_oh("some more data")
     except SpecialException:
-        nose.tools.eq_(_trace_call_count, 4)
+        nose.tools.eq_(_trace_call_count, 2)
     else:
         raise Exception("Was supposed to raise a SpecialException!")
 

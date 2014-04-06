@@ -34,6 +34,15 @@ def _trace(self, msg, *args, **kwargs):
 def hack_logger(newlog):
     newlog.trace = types.MethodType(_trace, newlog)
 
+class SourceContextFilter(logging.Filter):
+    '''Allow us to override the lineno and filename in log messages with our wrappers'''
+    def filter(self, record):
+        if hasattr(record, 'override_filename'):
+            record.filename = record.override_filename
+        if hasattr(record, 'override_lineno'):
+            record.lineno = record.override_lineno
+        return True
+
 def create_logger(handlers, level, name):
     """
     Build a new logger given an iterable of handlers
@@ -42,7 +51,7 @@ def create_logger(handlers, level, name):
     newlog.setLevel(level)
     for handler in handlers:
         newlog.addHandler(handler)
-
+    newlog.addFilter(SourceContextFilter())
     hack_logger(newlog)
     return newlog
 
@@ -110,6 +119,8 @@ def debugrepr(obj, complete=True):
         return '[%s]' % (', '.join(debugrepr(inner) for inner in to_serialize))
     return repr(obj)
 
+#TODO: new format: callee_file.py:line: function_name -> (self=ClassName[0xesar75y], arg1=..., arg2=..., kwarg1=...)
+#                  callee_file.py:line: function_name <- return_value
 class LazyLoggingWrapperBase(object):
     '''
     Decorator for logging call/arguments and return value from functions.
@@ -121,14 +132,30 @@ class LazyLoggingWrapperBase(object):
         self.level = level
         self.verbose_return = verbose_return
 
+    @staticmethod
+    def special_self_encoding(data, is_verbose):
+        return '%s[%s]' % (data.__class__.__name__, hex(id(data)))
+
+    @staticmethod
+    def encode_data(data, is_verbose):
+        if is_verbose:
+            return debugrepr(data)
+        else:
+            return repr(data)
+
     def get_verbose(self, func):
         return self.verbose
 
     def __call__(self, func):
         verbose_arg_names = self.get_verbose(func)
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            #TODO: restructure this function so that it is easier to step through when debugging
+
+        all_names = func.func_code.co_varnames
+        arg_names = tuple(all_names[:func.func_code.co_argcount])
+        function_name = func.func_name
+        extra = dict(override_filename=func.__code__.co_filename,
+                     override_lineno=func.__code__.co_firstlineno+1)
+
+        def get_log():
             if self.level == TRACE:
                 log_func = log.trace
             elif self.level == logging.DEBUG:
@@ -141,30 +168,45 @@ class LazyLoggingWrapperBase(object):
                 log_func = log.error
             else:
                 raise Exception("Bad logging level for lazy logger: " + str(self.level))
-            current_frame = sys._getframe()
-            if current_frame.f_back is None:
-                caller_file_name = '(top)'
-                caller_line_number = -1
-            else:
-                calling_frame = current_frame.f_back
-                calling_code = calling_frame.f_code
-                caller_file_name = calling_code.co_filename
-                caller_line_number = calling_frame.f_lineno
-            callee_file_name = func.__code__.co_filename
-            func_name = callee_file_name + ':' + func.func_name
-            log_func('%s:%s \\/ %s' % (caller_file_name, caller_line_number, func_name))
-            for i in range(0, len(args)):
-                log_func('    %d = %s' % (i+1, debugrepr(args[i])))
-            for kwarg_name in kwargs:
-                log_func('    %s = %s' % (kwarg_name, debugrepr(kwargs[kwarg_name])))
+            return log_func
+
+        def make_param_string(*args, **kwargs):
+            encoded_params = []
+            for i in range(0, min(len(args), len(arg_names))):
+                arg_name = arg_names[i]
+                if arg_name == 'self':
+                    encoded_value = LazyLoggingWrapperBase.special_self_encoding(args[i], arg_name in verbose_arg_names)
+                else:
+                    encoded_value = LazyLoggingWrapperBase.encode_data(args[i], arg_name in verbose_arg_names)
+                encoded_params.append('%s=%s' % (arg_name, encoded_value))
+            for key in kwargs:
+                encoded_value = LazyLoggingWrapperBase.encode_data(kwargs[key], key in verbose_arg_names)
+                encoded_params.append('%s=%s' % (arg_name, encoded_value))
+            #TODO: unsure how to deal with varargs...
+            #if len(args) > len(arg_names):
+            #    encoded_var_args = []
+            #    for i in range(len(arg_names), len(args)):
+            #        encoded_value = LazyLoggingWrapperBase.encode_data(args[i], arg_name in verbose_arg_names)
+            #        encoded_var_args.append(encoded_value)
+            #    encoded_params.append('...=' + str(encoded_var_args))
+            return ', '.join(encoded_params)
+
+        def make_error_string(e):
+            return e.__class__.__name__ + ": " + str(e)
+
+        def make_result_string(result):
+            return LazyLoggingWrapperBase.encode_data(result, self.verbose_return)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            log_func = get_log()
+            log_func('%s -> (%s)' % (function_name, make_param_string(*args, **kwargs)), extra=extra)
             try:
                 result = func(*args, **kwargs)
             except Exception, e:
-                log_func('%s:%s /\\ %s' % (caller_file_name, caller_line_number, func_name))
-                log_func('    !! ' + e.__class__.__name__ + ": " + str(e))
+                log_func('%s !! (%s)' % (function_name, make_error_string(e)), extra=extra)
                 raise
-            log_func('%s:%s /\\ %s' % (caller_file_name, caller_line_number, func_name))
-            log_func('    ' + debugrepr(result))
+            log_func('%s <- (%s)' % (function_name, make_result_string(result)), extra=extra)
             return result
         return wrapper
 
