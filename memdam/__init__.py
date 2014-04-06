@@ -124,6 +124,8 @@ _created_loggers = {}
 def _create_module_logger(module_name):
     if module_name == '__main__':
         module_name = 'memdam.__main__'
+    if module_name.startswith('tests.'):
+        module_name = 'memdam.' + module_name
     if module_name not in _created_loggers:
         current_logger = logging.getLogger(module_name)
         hack_logger(current_logger)
