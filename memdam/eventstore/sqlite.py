@@ -8,6 +8,7 @@ import time
 import itertools
 
 import pytz
+import lockfile
 
 import memdam
 import memdam.common.field
@@ -51,6 +52,8 @@ class Eventstore(memdam.eventstore.api.Eventstore):
     """
 
     EXTENSION = '.sql'
+    LOCK_EXTENSION = '.lock'
+    CREATE_TABLE_EXTENSION = '.creating_sql'
 
     def __init__(self, folder):
         self.folder = folder
@@ -186,28 +189,71 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         if len(events) <= 0:
             return
         assert SqliteColumn.SQL_NAME_REGEX.match(table_name), "Invalid name for table: %s" % (table_name)
+
+        key_names = set()
+        for event in events:
+            for key in event.keys:
+                key_names.add(key)
+        #certain key names are ignored because they are stored implicity in the location of
+        #this database (user, namespace)
+        for reserved_name in ("type__namespace", "user__id"):
+            if reserved_name in key_names:
+                key_names.remove(reserved_name)
+
+        should_update_columns = True
+        if self.folder != ":memory:":
+            #does table not exist?
+            db_file = os.path.join(self.folder, table_name + Eventstore.EXTENSION)
+            if not os.path.exists(db_file):
+                #try to acquire lock
+                lock_file = os.path.join(self.folder, table_name + Eventstore.LOCK_EXTENSION)
+                lock = lockfile.LockFile(lock_file)
+                with lock:
+                    #two possible scenarios:
+                    #1. we got the lock AFTER someone else, who already made the table:
+                    if os.path.exists(db_file):
+                        #TODO: move this somewhere more sensible
+                        try:
+                            os.remove(lock)
+                        except:
+                            pass
+                    #2. we got the lock BEFORE anyone else, so we're responsible for making the table:
+                    else:
+                        should_update_columns = False
+                        #make the table and create the columns
+                        temp_db_file = os.path.join(self.folder, table_name + Eventstore.CREATE_TABLE_EXTENSION)
+                        self._create_database(table_name, key_names, temp_db_file)
+                        #move the file back to it's regular location
+                        os.rename(temp_db_file, db_file)
+                        #TODO: move this somewhere more sensible
+                        try:
+                            os.remove(lock)
+                        except:
+                            pass
+
         conn = self._connect(table_name, read_only=False)
-        def update_columns():
-            cur = conn.cursor()
-            existing_columns = self._query_existing_columns(cur, table_name)
-            key_names = set()
-            for event in events:
-                for key in event.keys:
-                    key_names.add(key)
-            #certain key names are ignored because they are stored implicity in the location of
-            #this database (user, namespace)
-            for reserved_name in ("type__namespace", "user__id"):
-                if reserved_name in key_names:
-                    key_names.remove(reserved_name)
-            required_columns = self._generate_columns(cur, key_names, table_name)
-            self._update_columns(cur, existing_columns, required_columns)
-            return key_names
-        key_names = execute_with_retries(update_columns, 5)
+        if should_update_columns:
+            def update_columns():
+                cur = conn.cursor()
+                existing_columns = self._query_existing_columns(cur, table_name)
+                required_columns = self._generate_columns(cur, key_names, table_name)
+                self._update_columns(cur, existing_columns, required_columns)
+            #TODO: use the locking approach for updating as well as creating?
+            execute_with_retries(update_columns, 5)
 
         cur = conn.cursor()
         cur.execute("BEGIN EXCLUSIVE")
         self._insert_events(cur, events, key_names, table_name)
         conn.commit()
+
+    def _create_database(self, table_name, key_names, db_file):
+        assert self.folder != ":memory:", 'because we don\'t have to do this with memory'
+        conn = sqlite3.connect(db_file, isolation_level="EXCLUSIVE")
+        cur = conn.cursor()
+        #TODO: this should NOT have the side-effect of creating the table, that is just weird
+        existing_columns = self._query_existing_columns(cur, table_name)
+        required_columns = self._generate_columns(cur, key_names, table_name)
+        self._update_columns(cur, existing_columns, required_columns)
 
     def _query_existing_columns(self, cur, table_name):
         """

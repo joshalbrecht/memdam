@@ -1,11 +1,10 @@
 
-finish configuration for launching collectors
-default configuration generated needs to include:
-    each collector
-    an appropriate interval for each collector (default config for each collector)
-create integration tests for the collectors
-separate out the AOP logging stuff into its own module
-    actually, should probably replace with any number of existing solutions (see open tabs)
+fix sync integration test
+fix webcam integration test
+
+
+
+
 test that we can look at the actual events in some sensible way
 distribute to initial users
 
