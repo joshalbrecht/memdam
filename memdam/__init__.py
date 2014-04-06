@@ -44,11 +44,11 @@ class SourceContextFilter(logging.Filter):
             record.lineno = record.override_lineno
         return True
 
-def create_logger(handlers, level, name):
+def create_logger(handlers, level):
     """
     Build a new logger given an iterable of handlers
     """
-    newlog = logging.getLogger(name)
+    newlog = logging.getLogger('memdam')
     newlog.setLevel(level)
     for handler in handlers:
         newlog.addHandler(handler)
@@ -58,18 +58,13 @@ def create_logger(handlers, level, name):
 
 #set up a default logger in case anything goes wrong before we've set up the real, multi-process
 #logging
-SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN, name="default")
+SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN)
 #TODO: this log variable should be replaced with something that automatically calls the right get_logger
 log = SIMPLE_LOGGER
 #note: just for pylint
 log.trace = lambda x: None
 hack_logger(log)
 logging.addLevelName(TRACE, "TRACE")
-
-def use_debug_logger():
-    """Convenience function. Call this to log all statements (TRACE and above) to STDOUT"""
-    global log
-    log = create_logger([STDOUT_HANDLER], TRACE, name="testlogger")
 
 #access these globals for runtime options (enable debugging, etc)
 class Config(object):
@@ -120,8 +115,6 @@ def debugrepr(obj, complete=True):
         return '[%s]' % (', '.join(debugrepr(inner) for inner in to_serialize))
     return repr(obj)
 
-#TODO: new format: callee_file.py:line: function_name -> (self=ClassName[0xesar75y], arg1=..., arg2=..., kwarg1=...)
-#                  callee_file.py:line: function_name <- return_value
 class LazyLoggingWrapperBase(object):
     '''
     Decorator for logging call/arguments and return value from functions.
@@ -156,17 +149,20 @@ class LazyLoggingWrapperBase(object):
         extra = dict(override_filename=func.__code__.co_filename,
                      override_lineno=func.__code__.co_firstlineno+1)
 
+        current_logger = logging.getLogger(module)
+        hack_logger(current_logger)
+
         def get_log():
             if self.level == TRACE:
-                log_func = log.trace
+                log_func = current_logger.trace
             elif self.level == logging.DEBUG:
-                log_func = log.debug
+                log_func = current_logger.debug
             elif self.level == logging.INFO:
-                log_func = log.info
+                log_func = current_logger.info
             elif self.level == logging.WARN:
-                log_func = log.warn
+                log_func = current_logger.warn
             elif self.level == logging.ERROR:
-                log_func = log.error
+                log_func = current_logger.error
             else:
                 raise Exception("Bad logging level for lazy logger: " + str(self.level))
             return log_func

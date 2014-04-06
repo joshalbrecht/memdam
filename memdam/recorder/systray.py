@@ -20,7 +20,7 @@ class Capture(rumps.App):
 
 if __name__ == "__main__":
     handlers = [memdam.STDOUT_HANDLER]
-    memdam.common.parallel.setup_log("mainlog", level=logging.DEBUG, handlers=handlers)
+    memdam.common.parallel.setup_log(level=logging.DEBUG, handlers=handlers)
     strand = memdam.common.parallel.create_strand("chronographer_main", memdam.recorder.main.main)
     strand.start()
     Capture().run()

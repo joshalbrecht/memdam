@@ -14,7 +14,7 @@ import memdam
 import memdam.common.log
 import memdam.common.error
 
-def setup_log(name, level=logging.WARN, handlers=None, queue=None):
+def setup_log(level=logging.WARN, handlers=None, queue=None):
     """
     Call from the beginning of the main thread.
 
@@ -28,7 +28,7 @@ def setup_log(name, level=logging.WARN, handlers=None, queue=None):
     else:
         assert handlers == None, "Can only configure handlers at the root logger"
         handler = memdam.common.log.ChildLogHandler(queue)
-    memdam.log = memdam.create_logger([handler], level, name)
+    memdam.log = memdam.create_logger([handler], level)
 
 def _setup_logging_and_call(*args, **kwargs):
     """
