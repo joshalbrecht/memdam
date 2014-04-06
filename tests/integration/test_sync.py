@@ -33,7 +33,7 @@ class TestCollector(memdam.recorder.collector.collector.Collector):
 
 def test_sync():
     handlers = [memdam.STDOUT_HANDLER]
-    memdam.common.parallel.setup_log("synch_test", handlers=handlers, level=logging.DEBUG)
+    memdam.common.parallel.setup_log(handlers=handlers, level=logging.DEBUG)
     event_source_folder = memdam.common.utils.make_temp_path()
     assert not os.path.exists(event_source_folder)
     os.mkdir(event_source_folder)

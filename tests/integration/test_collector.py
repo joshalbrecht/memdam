@@ -27,7 +27,8 @@ def test_collector_and_server():
     time.sleep(5.0)
     #start the collector
     user = memdam.recorder.user.terminal.User()
-    default_config = memdam.recorder.config.get_default_config('nothere')
+    collector_config = dict(SystemStats=dict(interval=dict(second='0,10,20,30,40,50')))
+    default_config = memdam.recorder.config.get_default_config('nothere', collector_config)
     config = memdam.recorder.config.Config('also_not_a_file', username=username, password=password, **default_config.data)
     collector_process = multiprocessing.Process(target=memdam.recorder.main.run, args=(user, config))
     collector_process.start()
