@@ -1,4 +1,5 @@
 
+import inspect
 import re
 import types
 import os
@@ -172,23 +173,26 @@ class LazyLoggingWrapperBase(object):
 
         def make_param_string(*args, **kwargs):
             encoded_params = []
+            keys_displayed = set()
             for i in range(0, min(len(args), len(arg_names))):
                 arg_name = arg_names[i]
+                keys_displayed.add(arg_name)
                 if arg_name == 'self':
                     encoded_value = LazyLoggingWrapperBase.special_self_encoding(args[i], arg_name in verbose_arg_names)
                 else:
                     encoded_value = LazyLoggingWrapperBase.encode_data(args[i], arg_name in verbose_arg_names)
                 encoded_params.append('%s=%s' % (arg_name, encoded_value))
             for key in kwargs:
-                encoded_value = LazyLoggingWrapperBase.encode_data(kwargs[key], key in verbose_arg_names)
-                encoded_params.append('%s=%s' % (arg_name, encoded_value))
-            #TODO: unsure how to deal with varargs...
-            #if len(args) > len(arg_names):
-            #    encoded_var_args = []
-            #    for i in range(len(arg_names), len(args)):
-            #        encoded_value = LazyLoggingWrapperBase.encode_data(args[i], arg_name in verbose_arg_names)
-            #        encoded_var_args.append(encoded_value)
-            #    encoded_params.append('...=' + str(encoded_var_args))
+                if key not in keys_displayed:
+                    encoded_value = LazyLoggingWrapperBase.encode_data(kwargs[key], key in verbose_arg_names)
+                    encoded_params.append('%s=%s' % (key, encoded_value))
+            if len(args) > len(arg_names):
+                encoded_var_args = []
+                varargs_name = inspect.getargspec(func).varargs
+                for i in range(len(arg_names), len(args)):
+                    encoded_value = LazyLoggingWrapperBase.encode_data(args[i], varargs_name in verbose_arg_names)
+                    encoded_var_args.append(encoded_value)
+                encoded_params.append('%s=%s' % (varargs_name, str(encoded_var_args)))
             return ', '.join(encoded_params)
 
         def make_error_string(e):

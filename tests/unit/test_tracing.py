@@ -50,7 +50,7 @@ class ArbitraryClassWithFunctionsAndData(memdam.Base):
         self.val2 = val2
 
     @memdam.vtrace()
-    def some_function(self, thing, other_thing, kwarg1=None, kwarg2=4):
+    def some_function(self, thing, other_thing, kwarg1=None, kwarg2=4, *args):
         self.do_stuff(other_thing)
         return 4
 
