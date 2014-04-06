@@ -7,27 +7,27 @@ import nose.tools
 import memdam
 import memdam.common.utils
 
-_original_trace_function = None
-_trace_call_count = 0
+_original_handle_function = None
+_log_call_count = 0
 def mock_log():
     """
     change wrap memdam.log.trace so that we can count the number of calls
     """
-    global _original_trace_function
-    _original_trace_function = memdam.log.trace
-    def new_trace(self, *args, **kwargs):
-        global _trace_call_count
-        _trace_call_count += 1
-        _original_trace_function(*args, **kwargs)
-    memdam.log.trace = types.MethodType(new_trace, memdam.log)
+    global _original_handle_function
+    _original_handle_function = memdam.log.handlers[0].handle
+    def new_handle(self, *args, **kwargs):
+        global _log_call_count
+        _log_call_count += 1
+        _original_handle_function(*args, **kwargs)
+    memdam.log.handlers[0].handle = types.MethodType(new_handle, memdam.log.handlers[0].handle)
 
 def clear_log():
     """
     unwrap memdam.log.trace so that it is back to normal for other tests
     """
-    global _original_trace_function, _trace_call_count
-    _trace_call_count = 0
-    memdam.log.trace = _original_trace_function
+    global _original_handle_function, _log_call_count
+    _log_call_count = 0
+    memdam.log.handlers[0].handle = _original_handle_function
 
 def setup():
     """
@@ -65,14 +65,14 @@ class ArbitraryClassWithFunctionsAndData(memdam.Base):
 @nose.tools.with_setup(mock_log, clear_log)
 def test_tracing():
     function_to_call([ArbitraryClassWithFunctionsAndData(4, 4), ArbitraryClassWithFunctionsAndData(4, 4), 1, 1, 1, 1, 2, 2, "suuuuuupppperlonnnngggstrrriinngggg" * 400])
-    nose.tools.eq_(_trace_call_count, 6)
+    nose.tools.eq_(_log_call_count, 6)
 
 @nose.tools.with_setup(mock_log, clear_log)
 def test_exception_tracing():
     try:
         ArbitraryClassWithFunctionsAndData("x", 234876).uh_oh("some more data")
     except SpecialException:
-        nose.tools.eq_(_trace_call_count, 2)
+        nose.tools.eq_(_log_call_count, 2)
     else:
         raise Exception("Was supposed to raise a SpecialException!")
 

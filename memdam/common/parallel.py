@@ -28,7 +28,7 @@ def setup_log(level=logging.WARN, handlers=None, queue=None):
     else:
         assert handlers == None, "Can only configure handlers at the root logger"
         handler = memdam.common.log.ChildLogHandler(queue)
-    memdam.log = memdam.create_logger([handler], level)
+    memdam._logger = memdam.create_logger([handler], level)
 
 def _setup_logging_and_call(*args, **kwargs):
     """
@@ -40,7 +40,7 @@ def _setup_logging_and_call(*args, **kwargs):
         target = args.pop(0)
         queue = args.pop(0)
         #HACK: don't bother setting up a new logger if we're just in a different thread
-        if not hasattr(memdam.log.handlers[0], 'queue'):
+        if not hasattr(memdam._logger.handlers[0], 'queue'):
             if not memdam.config.debug_logging:
                 assert queue != None
                 setup_log(queue)
@@ -83,7 +83,7 @@ def create_strand(name, target, args=None, kwargs=None, use_process=False):
     :type  use_process: bool
     """
     if memdam.is_threaded_logging_setup():
-        queue = memdam.log.handlers[0].queue
+        queue = memdam._logger.handlers[0].queue
     else:
         if memdam.config.debug_logging:
             queue = None

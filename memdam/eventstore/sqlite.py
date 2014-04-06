@@ -57,7 +57,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         self.memory_connection = None
 
     def save(self, events):
-        memdam.log.debug("Saving events")
+        memdam._logger.debug("Saving events")
         sorted_events = sorted(events, key=lambda x: x.namespace)
         for namespace, grouped_events in itertools.groupby(sorted_events, lambda x: x.namespace):
             table_name = namespace_to_table_name(namespace)
@@ -182,7 +182,7 @@ class Eventstore(memdam.eventstore.api.Eventstore):
         """
         Save all events of the same type to the database at once
         """
-        memdam.log.debug("Saving %s events to %s" % (len(events), table_name))
+        memdam._logger.debug("Saving %s events to %s" % (len(events), table_name))
         if len(events) <= 0:
             return
         assert SqliteColumn.SQL_NAME_REGEX.match(table_name), "Invalid name for table: %s" % (table_name)

@@ -60,10 +60,10 @@ def create_logger(handlers, level):
 #logging
 SIMPLE_LOGGER = create_logger([STDOUT_HANDLER], logging.WARN)
 #TODO: this log variable should be replaced with something that automatically calls the right get_logger
-log = SIMPLE_LOGGER
+_logger = SIMPLE_LOGGER
 #note: just for pylint
-log.trace = lambda x: None
-hack_logger(log)
+_logger.trace = lambda x: None
+hack_logger(_logger)
 logging.addLevelName(TRACE, "TRACE")
 
 #access these globals for runtime options (enable debugging, etc)
@@ -81,19 +81,19 @@ class Config(object):
             self.mandrill_key = infile.read().strip()
             infile.close()
         else:
-            log.warn("Could not find email api key!")
+            _logger.warn("Could not find email api key!")
 config = Config()
 
 def flush_logs():
     """Simply write all of the log events out of the queue, for debugging"""
-    log.handlers[0].flush()
+    _logger.handlers[0].flush()
 
 def shutdown_log():
     """Should be the very last statement in a program. Without this there are warnings about unclean debug client shutdowns."""
-    log.handlers[0]._shutdown()
+    _logger.handlers[0]._shutdown()
 
 def is_threaded_logging_setup():
-    return hasattr(log.handlers[0], 'queue')
+    return hasattr(_logger.handlers[0], 'queue')
 
 #some debugging tools:
 
@@ -114,6 +114,29 @@ def debugrepr(obj, complete=True):
             to_serialize = obj
         return '[%s]' % (', '.join(debugrepr(inner) for inner in to_serialize))
     return repr(obj)
+
+_created_loggers = {}
+def _create_module_logger(module_name):
+    if module_name == '__main__':
+        module_name = 'memdam.__main__'
+    if module_name not in _created_loggers:
+        current_logger = logging.getLogger(module_name)
+        hack_logger(current_logger)
+        current_logger.addFilter(SourceContextFilter())
+        _created_loggers[module_name] = current_logger
+    return _created_loggers[module_name]
+
+def log():
+    '''
+    Gross. We look at the module of the calling function, and use that to pull the right logger out.
+    '''
+    current_frame = sys._getframe()
+    module = inspect.getmodule(current_frame.f_back)
+    if module is None:
+        module_name = '__main__'
+    else:
+        module_name = module.__name__
+    return _create_module_logger(module_name)
 
 class LazyLoggingWrapperBase(object):
     '''
@@ -149,10 +172,9 @@ class LazyLoggingWrapperBase(object):
         extra = dict(override_filename=func.__code__.co_filename,
                      override_lineno=func.__code__.co_firstlineno+1)
 
-        current_logger = logging.getLogger(module)
-        hack_logger(current_logger)
-
         def get_log():
+            module_name = func.__module__
+            current_logger = _create_module_logger(module_name)
             if self.level == TRACE:
                 log_func = current_logger.trace
             elif self.level == logging.DEBUG:

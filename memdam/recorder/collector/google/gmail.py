@@ -79,7 +79,7 @@ class GmailConnection(object):
         :rtype: list(memdam.common.event.Event)
         """
 
-        memdam.log.debug("Reading message %s", mail_id)
+        memdam._logger.debug("Reading message %s", mail_id)
         current_code = mail_id[0]
         message_id = int(mail_id[1:])
         assert current_code in (_MAIL_CODE, _CHAT_CODE)
@@ -88,11 +88,11 @@ class GmailConnection(object):
         else:
             folder = _CHAT_FOLDER
 
-        memdam.log.debug("Reading from %s", folder)
+        memdam._logger.debug("Reading from %s", folder)
         self._imap.select(folder, True)
         message_response = self._imap.fetch(message_id, '(RFC822)')
 
-        memdam.log.debug("Parsing server response: %s", message_response)
+        memdam._logger.debug("Parsing server response: %s", message_response)
         message_string = message_response[1][0][1]
         message = email.message_from_string(message_string)
 

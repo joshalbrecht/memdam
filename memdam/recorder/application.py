@@ -38,7 +38,7 @@ class MyQApp(QtGui.QApplication):
         """
         try:
             try:
-                #memdam.log.info("Processing commands")
+                #memdam._logger.info("Processing commands")
                 data = self._task_queue.get_nowait()
                 if data != None:
                     func, future = data

@@ -15,7 +15,7 @@ class SamplingCollector(memdam.recorder.collector.collector.Collector):
 
     def _collect(self, limit):
         if limit <= 0:
-            memdam.log.error("SamplingCollector %s was skipped!" % (self))
+            memdam._logger.error("SamplingCollector %s was skipped!" % (self))
         else:
             return self.sample()
 
