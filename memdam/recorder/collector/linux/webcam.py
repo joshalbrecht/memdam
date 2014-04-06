@@ -49,6 +49,6 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
         _, snapshot_file = tempfile.mkstemp(".png")
         image.save(snapshot_file)
         snapshot = self._save_file(snapshot_file, consume_file=True)
-        memdam._logger.debug("Saved " + snapshot_file + " (Size: " + str(size_x) + " x " + str(size_y) + ")")
+        memdam.log().debug("Saved " + snapshot_file + " (Size: " + str(size_x) + " x " + str(size_y) + ")")
 
         return [memdam.common.event.new(u"com.memdam.webcam", data__file=snapshot)]

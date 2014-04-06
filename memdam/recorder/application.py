@@ -18,11 +18,11 @@ def app():
     return _QAPP
 
 class MyQApp(QtGui.QApplication):
-    
+
     def __init__(self, *args, **kwargs):
         QtGui.QApplication.__init__(self, *args, **kwargs)
         self._task_queue = Queue.Queue()
-        
+
     def create_window_and_run(self, shutdown):
         self.window = memdam.recorder.application.Window(shutdown)
         #TODO: clean up this exit process stuff below. Maybe have to do something different on windows. Write better comment
@@ -31,14 +31,14 @@ class MyQApp(QtGui.QApplication):
         self.window.show()
         self.window.raise_()
         return self.exec_()
-    
+
     def process_external_commands(self):
         """
         This will run functions from the main loop and fulfill your futures.
         """
         try:
             try:
-                #memdam._logger.info("Processing commands")
+                #memdam.log().info("Processing commands")
                 data = self._task_queue.get_nowait()
                 if data != None:
                     func, future = data
@@ -71,7 +71,7 @@ class Window(QtGui.QDialog):
         self._shutdown_func = shutdown_func
         self.createActions()
         self.createTrayIcon()
-        
+
         #infile = open('/Users/josh/code/memdam/dist/main.app/Contents/Resources/heart.png', 'rb')
         infile = open('heart.png', 'rb')
         self.image_data = infile.read()
@@ -102,7 +102,7 @@ class Window(QtGui.QDialog):
                     "context menu of the system tray entry.")
             self.hide()
             event.ignore()
-            
+
     def doQuit(self, *args, **kwargs):
         self._shutdown_func()
         QtGui.qApp.quit()
@@ -131,4 +131,3 @@ class Window(QtGui.QDialog):
          self.trayIcon = QtGui.QSystemTrayIcon(self)
          self.trayIcon.setContextMenu(self.trayIconMenu)
 
-    

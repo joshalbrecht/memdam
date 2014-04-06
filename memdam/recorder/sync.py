@@ -17,10 +17,10 @@ class SyncWorker(memdam.recorder.workmanager.Worker):
 
     #TODO: what are the rules about sharing blobs? currently a race condition if there are two events that both refer to the same blob. One may get uploaded and then deleted right while the other one is being transferred. Or it may fail while being deleted because it is being copied, or any number of weird filesystem corner cases (on windows mostly)
     def _process(self, work_id):
-        memdam._logger.info("Processing event " + str(work_id))
+        memdam.log().info("Processing event " + str(work_id))
         event = self._event_source.get(work_id)
         for field, blob_ref in event.blob_ids:
-            memdam._logger.info("Processing blob " + str(work_id))
+            memdam.log().info("Processing blob " + str(work_id))
             temp_file = memdam.common.utils.make_temp_path()
             try:
                 #TODO: someday, can check for existence in dest first, so that we don't have to re-upload files. Maybe ensure etag or something

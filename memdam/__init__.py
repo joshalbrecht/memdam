@@ -50,6 +50,8 @@ def create_logger(handlers, level):
     """
     newlog = logging.getLogger('memdam')
     newlog.setLevel(level)
+    for handler in newlog.handlers:
+        newlog.removeHandler(handler)
     for handler in handlers:
         newlog.addHandler(handler)
     newlog.addFilter(SourceContextFilter())
@@ -101,15 +103,18 @@ def debugrepr(obj, complete=True):
     """
     Converts any object into SOME reasonable kind of representation for debugging purposes.
     """
-    if complete and hasattr(obj, '_debugrepr'):
+    if complete and hasattr(obj, '_debugrepr') and type(obj) != type:
         return obj._debugrepr()
+    if isinstance(obj, buffer):
+        return '(!raw bytes!)'
     if isinstance(obj, basestring):
         if len(obj) > 128:
             return obj[:64] + '...' + obj[-64:]
         return obj
     if hasattr(obj, '__len__'):
         if len(obj) > 4:
-            to_serialize = obj[:2] + ['...'] + obj[-2:]
+            ordered_obj = list(obj)
+            to_serialize = ordered_obj[:2] + ['...'] + ordered_obj[-2:]
         else:
             to_serialize = obj
         return '[%s]' % (', '.join(debugrepr(inner) for inner in to_serialize))

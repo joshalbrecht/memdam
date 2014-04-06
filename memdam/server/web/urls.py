@@ -33,5 +33,5 @@ def handle_errors(err):
     response_data['code'] = status_code
     response_data['failed'] = True
     response_data['trace'] = trace_data
-    memdam._logger.info("Request failed: " + str(response_data))
+    memdam.log().info("Request failed: " + str(response_data))
     return flask.make_response(flask.jsonify(response_data), status_code)

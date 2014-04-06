@@ -43,21 +43,21 @@ class PollingWorkManager(object):
         self._main_strand.start()
 
     def stop(self):
-        memdam._logger.debug("Adding PoisonPills")
+        memdam.log().debug("Adding PoisonPills")
         for i in range(0, len(self._pool)):
             self._pool_queue.put(memdam.common.poisonpill.PoisonPill())
         self._master_queue.put(memdam.common.poisonpill.PoisonPill())
         for process in self._pool + [self._main_strand]:
-            memdam._logger.info("Waiting for %s" % (process))
+            memdam.log().info("Waiting for %s" % (process))
             process.join()
             if process.exitcode != 0:
-                memdam._logger.warn("Unclean worker exit: " + str(process.exitcode))
-        memdam._logger.trace("Closing queues")
+                memdam.log().warn("Unclean worker exit: " + str(process.exitcode))
+        memdam.log().trace("Closing queues")
 
 class Worker(object):
     def __init__(self):
         pass
-    
+
     def run(self, queue):
         while True:
             try:

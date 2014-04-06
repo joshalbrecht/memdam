@@ -14,12 +14,12 @@ def mock_log():
     change wrap memdam.log.trace so that we can count the number of calls
     """
     global _original_handle_function
-    _original_handle_function = memdam.log.handlers[0].handle
+    _original_handle_function = memdam._logger.handlers[0].handle
     def new_handle(self, *args, **kwargs):
         global _log_call_count
         _log_call_count += 1
         _original_handle_function(*args, **kwargs)
-    memdam.log.handlers[0].handle = types.MethodType(new_handle, memdam.log.handlers[0].handle)
+    memdam._logger.handlers[0].handle = types.MethodType(new_handle, memdam._logger.handlers[0].handle)
 
 def clear_log():
     """
@@ -27,13 +27,13 @@ def clear_log():
     """
     global _original_handle_function, _log_call_count
     _log_call_count = 0
-    memdam.log.handlers[0].handle = _original_handle_function
+    memdam._logger.handlers[0].handle = _original_handle_function
 
 def setup():
     """
     global setup. everything should run at the trace level
     """
-    memdam.log.setLevel(memdam.TRACE)
+    memdam._logger.setLevel(memdam.TRACE)
 
 @memdam.vtrace()
 def function_to_call(thing):

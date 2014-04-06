@@ -24,7 +24,7 @@ def report(e):
   htmlContent = get_error_html(e, exc_info)
   textContent = '\n'.join(traceback.format_exception(*exc_info))
 
-  memdam._logger.error(textContent)
+  memdam.log().error(textContent)
   if memdam.config.mandrill_key == None:
     filename = "/tmp/python_%s_%s_error.html" % \
                (os.getpid(), threading.current_thread().ident)

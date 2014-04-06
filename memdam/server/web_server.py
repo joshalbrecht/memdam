@@ -62,7 +62,7 @@ def _parse_config(kwargs):
     Parses the configuration from a variety of sources into memdam.server.web.app.config
 
     Also applies the settings to the logger because that should happen as early as possible in the
-    process. Probably should not make calls to memdam._logger before this.
+    process. Probably should not make calls to memdam.log() before this.
 
     :param kwargs: a dictionary of the config arguments that should be applied for this run.
     :type  kwargs: dict
@@ -87,7 +87,7 @@ def _parse_config(kwargs):
     memdam._logger = memdam.server.web.urls.app.logger
     memdam.hack_logger(memdam._logger)
     memdam._logger.setLevel(getattr(logging, memdam.server.web.app.config['LOG_LEVEL']))
-    memdam._logger.info(config_message)
+    memdam.log().info(config_message)
 
 def _run_server():
     '''

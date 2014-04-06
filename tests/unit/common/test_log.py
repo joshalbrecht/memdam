@@ -11,13 +11,13 @@ import memdam.common.parallel
 def test_multithreaded_logging():
     """Check that logging works when using threads instead of processes"""
     with DebugProcessesAsThreads():
-        _check_logging("memdam-thread")
+        _check_logging()
 
 def test_multiprocess_logging():
     """Check that all log messages go to the parent thread correctly"""
-    _check_logging("memdam-process")
+    _check_logging()
 
-def _check_logging(log_name):
+def _check_logging():
     """Setup and run the test"""
     class MessageCountHandler(logging.StreamHandler):
         """For checking"""
@@ -28,8 +28,8 @@ def _check_logging(log_name):
             self.messages.append(record)
     message_counter = MessageCountHandler()
     handlers = [memdam.STDOUT_HANDLER, message_counter]
-    memdam.log = memdam.SIMPLE_LOGGER
-    memdam.common.parallel.setup_log(log_name, level=logging.DEBUG, handlers=handlers)
+    memdam._logger = memdam.SIMPLE_LOGGER
+    memdam.common.parallel.setup_log(level=logging.DEBUG, handlers=handlers)
     processes = []
     for i in range(5, 7):
         process = memdam.common.parallel.create_strand(
@@ -50,7 +50,7 @@ def _check_logging(log_name):
 def _print_some_statements(num):
     """Print some statements and exit"""
     for i in range(0, num):
-        memdam.log.info("log " + str(i))
+        memdam.log().info("log " + str(i))
         time.sleep(0.3)
 
 class DebugProcessesAsThreads(object):

@@ -70,7 +70,7 @@ def schedule(sched, collector, interval):
     '''
     def collect():
         '''Scheduler only calls functions without arguments'''
-        memdam._logger.debug("Collecting events from %s" % (collector))
+        memdam.log().debug("Collecting events from %s" % (collector))
         collector.collect_and_persist(1)
     sched.add_cron_job(collect, **interval)
 
@@ -111,7 +111,7 @@ def run(user, config):
         #http://docs.python.org/2/howto/logging.html#configuring-logging
         logging.getLogger().removeHandler(logging.getLogger().handlers[0])
 
-    memdam._logger.info(config.format_for_log())
+    memdam.log().info(config.format_for_log())
 
     local_folder = config.get(u'data_folder')
     username = config.get(u'username')
