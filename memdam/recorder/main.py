@@ -6,6 +6,7 @@ A daemon that will collect and transmit events for as many types of data as poss
 import sys
 import os
 import logging
+import logging.config
 import argparse
 
 import apscheduler.scheduler
@@ -110,6 +111,10 @@ def run(user, config):
         #see this for slightly more reasonable options:
         #http://docs.python.org/2/howto/logging.html#configuring-logging
         logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+
+    #TODO: load this from the user config
+    logging_config = dict(version=1, loggers={'memdam.eventstore.sqlite':dict(level='DEBUG')})
+    logging.config.dictConfig(logging_config)
 
     memdam.log().info(config.format_for_log())
 
