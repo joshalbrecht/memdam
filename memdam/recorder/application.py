@@ -36,6 +36,7 @@ class MyQApp(QtGui.QApplication):
         """
         This will run functions from the main loop and fulfill your futures.
         """
+        next_poll_delay_ms = 500
         try:
             try:
                 #memdam.log().info("Processing commands")
@@ -47,6 +48,7 @@ class MyQApp(QtGui.QApplication):
                             future.set_result(func())
                     except Exception, e:
                         future.set_exception(e)
+                    next_poll_delay_ms = 0
             except Queue.Empty:
                 pass
             except KeyboardInterrupt:
@@ -54,7 +56,7 @@ class MyQApp(QtGui.QApplication):
             except Exception, e:
                 memdam.common.error.report(e)
             finally:
-                QtCore.QTimer.singleShot(0, self.process_external_commands)
+                QtCore.QTimer.singleShot(next_poll_delay_ms, self.process_external_commands)
         except KeyboardInterrupt:
             self.window.doQuit()
 
@@ -130,4 +132,3 @@ class Window(QtGui.QDialog):
 
          self.trayIcon = QtGui.QSystemTrayIcon(self)
          self.trayIcon.setContextMenu(self.trayIconMenu)
-
