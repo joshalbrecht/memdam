@@ -1,4 +1,5 @@
 
+import os
 import tempfile
 import subprocess
 
@@ -12,8 +13,9 @@ class ScreenshotCollector(memdam.recorder.collector.collector.Collector):
     """
 
     def _collect(self, limit):
-        _, screenshot_file = tempfile.mkstemp(".png")
+        handle, screenshot_file = tempfile.mkstemp(".png")
         command = "import -window root %s" % (screenshot_file)
         subprocess.check_call(command, shell=True)
         screenshot = self._save_file(screenshot_file, consume_file=True)
+        os.close(handle)
         return [memdam.common.event.new(u"com.memdam.screenshot", data__file=screenshot)]

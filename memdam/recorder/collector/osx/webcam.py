@@ -12,7 +12,7 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
     '''
 
     def _collect(self, limit):
-        _, screenshot_file = tempfile.mkstemp('')
+        handle, screenshot_file = tempfile.mkstemp('')
         #TODO: when packaging, make this path correct...
         exe = './bin/wacaw'
         if not os.path.exists(exe):
@@ -21,4 +21,5 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
         subprocess.check_call(command, shell=True)
         screenshot_file += '.jpg'
         screenshot = self._save_file(screenshot_file, consume_file=True)
+        os.close(handle)
         return [memdam.common.event.new(u'com.memdam.webcam', data__file=screenshot)]

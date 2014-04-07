@@ -1,4 +1,5 @@
 
+import os
 import tempfile
 import select
 
@@ -46,9 +47,10 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
         image_data = video.read()
         video.close()
         image = Image.fromstring("RGB", (size_x, size_y), image_data)
-        _, snapshot_file = tempfile.mkstemp(".png")
+        handle, snapshot_file = tempfile.mkstemp(".png")
         image.save(snapshot_file)
         snapshot = self._save_file(snapshot_file, consume_file=True)
+        os.close(handle)
         memdam.log().debug("Saved " + snapshot_file + " (Size: " + str(size_x) + " x " + str(size_y) + ")")
 
         return [memdam.common.event.new(u"com.memdam.webcam", data__file=snapshot)]

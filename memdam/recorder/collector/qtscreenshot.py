@@ -28,8 +28,9 @@ class ScreenshotCollector(memdam.recorder.collector.collector.Collector):
         '''Needs to be called from the main thread so that it can take a screenshot of the desktop'''
         try:
             import PyQt4.QtGui
-            _, screenshot_file = tempfile.mkstemp(".png")
+            handle, screenshot_file = tempfile.mkstemp(".png")
             PyQt4.QtGui.QPixmap.grabWindow(PyQt4.QtGui.QApplication.desktop().winId()).save(screenshot_file, 'png')
+            os.close(handle)
             memdam.log().debug("Saved screenshot to " + screenshot_file)
             if self._is_similar_to_last_image(screenshot_file):
                 os.remove(screenshot_file)
