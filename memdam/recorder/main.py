@@ -24,6 +24,7 @@ import memdam.eventstore.https
 import memdam.recorder.config
 import memdam.recorder.state
 import memdam.recorder.collector.systemstats
+import memdam.recorder.collector.status
 import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.sync
 import memdam.recorder.application
@@ -47,6 +48,7 @@ def all_collectors():
     :returns: a list of all of all collectors that are possibly supported by this operating system
     '''
     collectors = [memdam.recorder.collector.systemstats.SystemStats,
+                  memdam.recorder.collector.status.ProcessStatusCollector,
                   memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
     if memdam.common.utils.is_windows():
         collectors += []

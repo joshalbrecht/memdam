@@ -1,11 +1,16 @@
 
-fix sync integration test
 fix webcam integration test
+enable webcam on production
+make absolute simplest method for querying events
+    web page where you can POST date range and type of event
+    comes back and shows up in table or something
+internet access should back off gracefully with some appropriate warnings, but no more than that (failed pretty hard before)
+    and failed again this time when the internet went down in a different way
+add folder uploader (recordings, memoto, screen casts, etc)
+maybe add some other stuff that would make it easier to record time spent
 
 
 
-
-test that we can look at the actual events in some sensible way
 distribute to initial users
 
 command to build:
