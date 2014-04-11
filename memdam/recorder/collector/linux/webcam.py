@@ -2,6 +2,7 @@
 import os
 import tempfile
 import select
+import shutil
 
 from PIL import Image
 #from here: https://github.com/gebart/python-v4l2capture/
@@ -19,6 +20,11 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
     https://forum.videolan.org/viewtopic.php?f=2&t=108670
     works on windows too...
     """
+
+    def __init__(self, config=None, state_store=None, eventstore=None, blobstore=None):
+        memdam.recorder.collector.collector.Collector.__init__(self, config=config, state_store=state_store, eventstore=eventstore, blobstore=blobstore)
+        self._last_image = None
+        self._threshold = 2.1  #set empirically based on my webcam. Seems to have around 1.3 to 1.9 values when nothing is changing in the environment
 
     def _collect(self, limit):
         # Open the video device.
@@ -49,8 +55,28 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
         image = Image.fromstring("RGB", (size_x, size_y), image_data)
         handle, snapshot_file = tempfile.mkstemp(".png")
         image.save(snapshot_file)
-        snapshot = self._save_file(snapshot_file, consume_file=True)
         os.close(handle)
         memdam.log().debug("Saved " + snapshot_file + " (Size: " + str(size_x) + " x " + str(size_y) + ")")
 
+        if self._is_similar_to_last_image(snapshot_file):
+            os.remove(snapshot_file)
+            return []
+
+        copied_location = memdam.common.utils.make_temp_path()
+        shutil.copy(snapshot_file, copied_location)
+        self._last_image = copied_location
+        snapshot = self._save_file(snapshot_file, consume_file=True)
         return [memdam.common.event.new(u"com.memdam.webcam", data__file=snapshot)]
+
+    def _is_similar_to_last_image(self, screenshot):
+        '''
+        :param screenshot: the image to check for similarity against our previous capture
+        :type  screenshot: string(path)
+        :returns: True iff the image is sufficiently similar to the last one we took.
+        :rtype: boolean
+        '''
+        if self._last_image is None:
+            return False
+        difference = memdam.common.image.rmsdiff(Image.open(self._last_image), Image.open(screenshot))
+        memdam.log().debug("SNAPSHOT DIFFERENCE=%s", difference)
+        return difference < self._threshold
