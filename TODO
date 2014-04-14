@@ -1,6 +1,4 @@
 
-fix webcam integration test
-enable webcam on production
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something

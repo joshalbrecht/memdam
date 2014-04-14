@@ -12,10 +12,12 @@ from memdam.server.web import app
 import memdam.server.web.blobs
 import memdam.server.web.events
 import memdam.server.web.queries
+import memdam.server.web.ui
 
 app.register_blueprint(memdam.server.web.blobs.blueprint, url_prefix='/api/v1/blobs')
 app.register_blueprint(memdam.server.web.events.blueprint, url_prefix='/api/v1/events')
 app.register_blueprint(memdam.server.web.queries.blueprint, url_prefix='/api/v1/queries')
+app.register_blueprint(memdam.server.web.ui.blueprint, url_prefix='/')
 
 @app.errorhandler(Exception)
 def handle_errors(err):
