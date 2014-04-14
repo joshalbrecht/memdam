@@ -1,4 +1,7 @@
 
+need to be able to delete a specific range of times for a specific type of events
+    stupid webcam is making completely fucked up images :(
+fix webcame images
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something
