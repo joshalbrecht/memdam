@@ -40,9 +40,9 @@ class ScreenshotCollector(memdam.recorder.collector.collector.Collector):
             self._last_image = copied_location
             screenshot = self._save_file(screenshot_file, consume_file=True)
             return [memdam.common.event.new(u"com.memdam.screenshot", data__file=screenshot)]
+        #note: because this is called from the main thread, we CANNOT allow exceptions to be raised, it breaks everything :(
         except Exception, e:
             memdam.common.error.report(e)
-            raise
 
     def _collect(self, limit):
         future = memdam.recorder.application.app().add_task(self._snapshot_func)

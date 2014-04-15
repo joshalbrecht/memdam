@@ -1,7 +1,8 @@
 
-need to be able to delete a specific range of times for a specific type of events
-    stupid webcam is making completely fucked up images :(
-fix webcame images
+fix webcam images
+webcam also periodically breaks after taking some images
+delete all production webcam images
+production doesn't seem to have any status events?
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something
@@ -9,6 +10,7 @@ internet access should back off gracefully with some appropriate warnings, but n
     and failed again this time when the internet went down in a different way
 add folder uploader (recordings, memoto, screen casts, etc)
 maybe add some other stuff that would make it easier to record time spent
+osx disk caching maybe should go back on--sql writes are failing because of this shitty vm performance :(
 
 
 
