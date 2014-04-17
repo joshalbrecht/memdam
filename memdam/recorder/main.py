@@ -11,6 +11,7 @@ import argparse
 
 import apscheduler.scheduler
 
+import memdam.common.error
 import memdam.common.utils
 import memdam.common.event
 import memdam.common.timeutils
@@ -73,8 +74,11 @@ def schedule(sched, collector, interval):
     '''
     def collect():
         '''Scheduler only calls functions without arguments'''
-        memdam.log().debug("Collecting events from %s" % (collector))
-        collector.collect_and_persist(1)
+        try:
+            memdam.log().debug("Collecting events from %s" % (collector))
+            collector.collect_and_persist(1)
+        except Exception, e:
+            memdam.common.error.report(e)
     sched.add_cron_job(collect, **interval)
 
 @memdam.vtrace()

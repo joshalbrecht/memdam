@@ -62,7 +62,7 @@ class Event(object):
         for key, value in kwargs.items():
             key = unicode(key)
             assert value != None, "Can not set attributes to None. If you want to, simply leave it off."
-            assert memdam.common.validation.EVENT_FIELD_REGEX.match(key), "Field %s contains something besides a-z_" % (key)
+            assert memdam.common.validation.EVENT_FIELD_REGEX.match(key), "Field %s contains something besides a-z_ or is the wrong type. Should match: %s" % (key, memdam.common.validation.EVENT_FIELD_REGEX.pattern)
             base_name = key.split('__')[0]
             assert base_name not in base_names, "Duplicated key: " + base_name
             base_names.add(base_name)

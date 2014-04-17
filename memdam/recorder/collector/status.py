@@ -8,4 +8,4 @@ class ProcessStatusCollector(memdam.recorder.collector.collector.Collector):
     """
 
     def _collect(self, limit):
-        return [memdam.common.event.new(u"com.memdam.process.status", is_running__boolean=True)]
+        return [memdam.common.event.new(u"com.memdam.process.status", is_running__bool=True)]
