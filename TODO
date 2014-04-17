@@ -1,7 +1,5 @@
 
-fix webcam images
-webcam also periodically breaks after taking some images
-delete all production webcam images
+delete all production webcam images (were corrupted)
 production doesn't seem to have any status events?
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
@@ -10,11 +8,13 @@ internet access should back off gracefully with some appropriate warnings, but n
     and failed again this time when the internet went down in a different way
 add folder uploader (recordings, memoto, screen casts, etc)
 maybe add some other stuff that would make it easier to record time spent
-osx disk caching maybe should go back on--sql writes are failing because of this shitty vm performance :(
 
 
 
 distribute to initial users
+
+if weird disk write/read error comes back
+    try turning on osx disk caching for vm
 
 command to build:
     rm -rf dist build && python setup.py py2app && chmod +x dist/main.app/Contents/Resources/wacaw

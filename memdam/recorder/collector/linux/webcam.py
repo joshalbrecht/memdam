@@ -1,12 +1,10 @@
 
 import os
 import tempfile
-import select
 import shutil
+import subprocess
 
 from PIL import Image
-#from here: https://github.com/gebart/python-v4l2capture/
-import v4l2capture
 
 import memdam
 import memdam.common.event
@@ -14,47 +12,25 @@ import memdam.recorder.collector.collector
 
 class WebcamCollector(memdam.recorder.collector.collector.Collector):
     """
-    Collect snapshots from the webcam using some janky V4L2 library.
+    Uses a simple external program (fswebcam) to capture the snapshots.
 
     Note: if this fails, can probably use VLC instead, see here:
     https://forum.videolan.org/viewtopic.php?f=2&t=108670
     works on windows too...
+
+    And there are a ton of other programs too (streamer, webcam, cheese)
     """
 
     def __init__(self, config=None, state_store=None, eventstore=None, blobstore=None):
         memdam.recorder.collector.collector.Collector.__init__(self, config=config, state_store=state_store, eventstore=eventstore, blobstore=blobstore)
         self._last_image = None
-        self._threshold = 2.1  #set empirically based on my webcam. Seems to have around 1.3 to 1.9 values when nothing is changing in the environment
+        self._threshold = 5.0  #set empirically based on my webcam. Seems to have around 2.3 to 2.5 values when nothing is changing in the environment
 
     def _collect(self, limit):
-        # Open the video device.
-        video = v4l2capture.Video_device("/dev/video0")
-
-        # Suggest an image size to the device. The device may choose and
-        # return another size if it doesn't support the suggested one.
-        size_x, size_y = video.set_format(1280, 1024)
-
-        # Create a buffer to store image data in. This must be done before
-        # calling 'start' if v4l2capture is compiled with libv4l2. Otherwise
-        # raises IOError.
-        video.create_buffers(1)
-
-        # Send the buffer to the device. Some devices require this to be done
-        # before calling 'start'.
-        video.queue_all_buffers()
-
-        # Start the device. This lights the LED if it's a camera that has one.
-        video.start()
-
-        # Wait for the device to fill the buffer.
-        select.select((video,), (), ())
-
-        # The rest is easy :-)
-        image_data = video.read()
-        video.close()
-        image = Image.fromstring("RGB", (size_x, size_y), image_data)
-        handle, snapshot_file = tempfile.mkstemp(".png")
-        image.save(snapshot_file)
+        size_x, size_y = (1280, 1024)
+        handle, snapshot_file = tempfile.mkstemp('.png')
+        command = 'fswebcam -q -r %dx%d --png 9 -D 1 -S 7 --no-banner %s' % (size_x, size_y, snapshot_file)
+        subprocess.check_call(command, shell=True)
         os.close(handle)
         memdam.log().debug("Saved " + snapshot_file + " (Size: " + str(size_x) + " x " + str(size_y) + ")")
 
