@@ -34,6 +34,10 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
         os.close(handle)
         memdam.log().debug("Saved " + snapshot_file + " (Size: " + str(size_x) + " x " + str(size_y) + ")")
 
+        if os.path.getsize(snapshot_file) <= 0:
+            memdam.log().warn("Failed to capture webcam image")
+            return []
+
         if self._is_similar_to_last_image(snapshot_file):
             os.remove(snapshot_file)
             return []
