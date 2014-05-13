@@ -1,5 +1,8 @@
 
-
+RESUME:
+    https://github.com/mbr/flask-bootstrap/blob/master/sample_application/__init__.py
+    http://pythonhosted.org/Flask-Bootstrap/basic-usage.html
+    get a simple form working
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something
