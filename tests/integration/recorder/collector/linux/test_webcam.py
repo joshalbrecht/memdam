@@ -15,8 +15,7 @@ class TestWebcam(tests.integration.recorder.collector.CollectorTestHarness):
             **kwargs
         )
 
-    def validate(self, result, error=None):
-        nose.tools.eq_(error, None)
+    def validate(self, result):
         nose.tools.eq_(len(result), 1)
 
 if __name__ == '__main__':

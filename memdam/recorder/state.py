@@ -24,6 +24,8 @@ class StateStore(object):
         :returns: the current state
         :rtype: dict
         """
+        if not os.path.exists(self._json_file):
+            return {}
         with open(self._json_file, 'rb') as infile:
             return json.load(infile)
 

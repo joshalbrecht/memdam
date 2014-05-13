@@ -34,16 +34,10 @@ class CollectorTestHarness(unittest.TestCase):
     # pylint: disable=C0103
     def runTest(self):
         '''Runs the test. Just starts the collectors, asks for some events, and stops it'''
-        error = None
-        result = None
-        try:
-            result = self.collector.collect_and_persist(10000000)
-        # pylint: disable=W0703
-        except Exception, e:
-            error = e
-        self.validate(result, error)
+        result = self.collector.collect_and_persist(10000000)
+        self.validate(result)
 
-    def validate(self, result, error=None):
+    def validate(self, result):
         '''
         Use this to check that the collector ran correctly.
         '''

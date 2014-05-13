@@ -1,4 +1,15 @@
 
+make folder uploader:
+    in update, list all files
+    for each, ask server if they exist (cache responses during run?)
+    if they do, check event creation time
+    should be equal to file last modified time
+    if not, upload the file as new event
+    eventually delete from folder (not yet, not sure if everything is in there)
+note that that will require us to be able to have multiple instances of the same collector
+    one each for voice, hangouts, calls
+    will need to specify the namespace as a config option I guess
+
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something
@@ -77,7 +88,9 @@ future (cleanup)
 
 future (collectors)
 finish gmail import
-store in local blob and event store first (much faster), and have a separate process that synchs from one to the other, then deletes from the original
+IDEA: eventually other collectors should become callable scripts that print out the json of the event
+        so that most of them can be removed from the core distribution, and people can easily make their own by just making a simple python script
+        the one thing standing in the way of this is BlobReference...
 
 future (when I have something I want to query for)
 query sqlite tests
@@ -85,7 +98,6 @@ query web tests
 query client integration tests
 
 future (UI)
-use pyqt probably
 
 future (deployment)
 add ability for updates
