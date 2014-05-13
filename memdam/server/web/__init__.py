@@ -1,6 +1,9 @@
 import flask
+import flask_bootstrap
 
 app = flask.Flask(__name__)
+
+flask_bootstrap.Bootstrap(app)
 
 app.config.update(dict(
     DATABASE_FOLDER=':memory:',

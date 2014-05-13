@@ -1,18 +1,11 @@
 
-make folder uploader:
-    in update, list all files
-    for each, ask server if they exist (cache responses during run?)
-    if they do, check event creation time
-    should be equal to file last modified time
-    if not, upload the file as new event
-    eventually delete from folder (not yet, not sure if everything is in there)
-note that that will require us to be able to have multiple instances of the same collector
-    one each for voice, hangouts, calls
-    will need to specify the namespace as a config option I guess
 
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something
+note that that will require us to be able to have multiple instances of the same collector
+    one each for voice, hangouts, calls
+    will need to specify the namespace as a config option I guess
 internet access should back off gracefully with some appropriate warnings, but no more than that (failed pretty hard before)
     and failed again this time when the internet went down in a different way
 add folder uploader (recordings, memoto, screen casts, etc)
