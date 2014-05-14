@@ -6,6 +6,12 @@ RESUME:
 make absolute simplest method for querying events
     web page where you can POST date range and type of event
     comes back and shows up in table or something
+        reasonable layout:
+            timeline     fixed width column for particular event type(s) 1
+              |          (determines its height based on the data to be shown, returns that)
+              V          (will have to have method for getting smaller images)
+        each data type is responsible for laying itself out within that fixed width column
+        can expand in the future to having multiple columns
 note that that will require us to be able to have multiple instances of the same collector
     one each for voice, hangouts, calls
     will need to specify the namespace as a config option I guess

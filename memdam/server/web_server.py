@@ -128,7 +128,7 @@ def read_commandline_args():
     parser.add_argument('--host', dest='LISTEN_ADDRESS', type=str,
                         help='the ip address on which to listen')
     parser.add_argument('--wsgi', dest='RUN_WSGI_SERVER', type=bool,
-                        help='if true, runs wsgi server for production, if false, runs in debug')
+                        help='if present, runs wsgi server for production, otherwise, runs in debug')
     parser.add_argument('--config', dest='CONFIG_FILE', type=str,
                         help='the path to a file with additional configuration')
     parser.add_argument('--db', dest='DATABASE_FOLDER', type=str,

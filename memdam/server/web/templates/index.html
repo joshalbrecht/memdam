@@ -1,4 +1,6 @@
 {% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
 {% block title %}This is an example page{% endblock %}
 
 {% block styles %}
@@ -38,5 +40,14 @@
         <h1>Hello World!</h1>
       {% endif %}
     </div>
+
+    <h2>This is the sample form (basic)</h2>
+    {{ wtf.quick_form(form, button_map={'submit_button': 'primary'}) }}
+
+    <h2>The same form, inline</h2>
+    {{ wtf.quick_form(form, form_type='inline', button_map={'submit_button': 'primary'}) }}
+
+    <h2>And as a horizontal form</h2>
+    {{ wtf.quick_form(form, form_type='horizontal', button_map={'submit_button': 'primary'})}}
 </div>
 {% endblock %}
