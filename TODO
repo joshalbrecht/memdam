@@ -19,7 +19,7 @@ internet access should back off gracefully with some appropriate warnings, but n
     and failed again this time when the internet went down in a different way
 add folder uploader (recordings, memoto, screen casts, etc)
 maybe add some other stuff that would make it easier to record time spent
-
+leaking files in /tmp that slowly fill my disk :(
 
 
 distribute to initial users
