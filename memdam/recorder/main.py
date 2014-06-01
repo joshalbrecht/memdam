@@ -16,7 +16,6 @@ import memdam.common.utils
 import memdam.common.event
 import memdam.common.timeutils
 import memdam.common.parallel
-import memdam.common.error
 import memdam.common.client
 import memdam.blobstore.localfolder
 import memdam.blobstore.https
@@ -25,6 +24,7 @@ import memdam.eventstore.https
 import memdam.recorder.config
 import memdam.recorder.state
 import memdam.recorder.collector.systemstats
+import memdam.recorder.collector.folder
 import memdam.recorder.collector.status
 import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.sync
@@ -50,7 +50,9 @@ def all_collectors():
     '''
     collectors = [memdam.recorder.collector.systemstats.SystemStats,
                   memdam.recorder.collector.status.ProcessStatusCollector,
-                  memdam.recorder.collector.qtscreenshot.ScreenshotCollector]
+                  memdam.recorder.collector.qtscreenshot.ScreenshotCollector,
+                  memdam.recorder.collector.folder.Folder,
+                  ]
     if memdam.common.utils.is_windows():
         collectors += []
     elif memdam.common.utils.is_osx():
