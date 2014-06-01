@@ -71,16 +71,27 @@ class Folder(memdam.recorder.collector.collector.Collector):
         folder_path, file_name = os.path.split(file_path)
         file_size = os.path.getsize(file_path)
         blob = self._save_file(file_path, consume_file=False)
-        event = memdam.common.event.new(
-            self._namespace,
+        data = dict(
             time__time=created_time,
             modified__time=last_modified_time,
             data__file=blob,
             name__string=file_name,
-            size__long=file_size)
-        #TODO: perhaps add extra details for specific types of files? format, mime type, movie length, codecs, resolution, etc
+            size__long=file_size
+        )
+        extra_data = self._generate_attributes(file_path)
+        merged_data = dict(data.items() + extra_data.items())
+        event = memdam.common.event.new(
+            self._namespace,
+            **merged_data)
         self._files_collected.append((file_path, last_modified_time))
         return event
+
+    def _generate_attributes(self, file_path):
+        """
+        :returns: extra details for specific types of files--format, mime type, movie length, codecs, resolution, etc
+        :rtype: dict(string -> object)
+        """
+        return {}
 
     def post_collect(self):
         current_state = self._state_store.get_state()

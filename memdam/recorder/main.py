@@ -27,6 +27,7 @@ import memdam.recorder.collector.systemstats
 import memdam.recorder.collector.folder
 import memdam.recorder.collector.status
 import memdam.recorder.collector.qtscreenshot
+import memdam.recorder.collector.personal.recorder
 import memdam.recorder.sync
 import memdam.recorder.application
 
@@ -52,6 +53,7 @@ def all_collectors():
                   memdam.recorder.collector.status.ProcessStatusCollector,
                   memdam.recorder.collector.qtscreenshot.ScreenshotCollector,
                   memdam.recorder.collector.folder.Folder,
+                  memdam.recorder.collector.personal.recorder.Recorder,
                   ]
     if memdam.common.utils.is_windows():
         collectors += []

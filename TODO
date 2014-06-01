@@ -1,4 +1,8 @@
 
+copy a few of each event type into other folders (for testing)
+write each uploader
+add to test config, run, see if it worked
+
 RESUME:
     https://github.com/mbr/flask-bootstrap/blob/master/sample_application/__init__.py
     http://pythonhosted.org/Flask-Bootstrap/basic-usage.html
