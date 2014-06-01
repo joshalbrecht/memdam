@@ -48,7 +48,7 @@
     <h2>Search</h2>
     {{ wtf.quick_form(form, form_type='horizontal', button_map={'submit_button': 'primary'})}}
 </div>
-<div id="results" class="container">
+<div id="results" class="container" style="white-space:nowrap;">
     <h2>Results</h2>
     <script type="text/javascript">
         var ALL_EVENTS = [
@@ -60,7 +60,15 @@
         $( document ).ready(function() {
             for (var i=0; i<ALL_EVENTS.length; i++) {
                 var event = ALL_EVENTS[i];
-                $('#results').append("<div>"+event.id__id+"</div>");
+                var data = "<div>"+event.time__time + " " + event.id__id + " " + event.type__namespace + " ";
+                var specialKeys = ["time__time", "id__id", "type__namespace"];
+                for (var key in event) {
+                    if (event.hasOwnProperty(key) && specialKeys.indexOf(key) == -1) {
+                        data += key + ": " + event[key] + "&nbsp;&nbsp;&nbsp;&nbsp;";
+                    }
+                }
+                data += "</div>";
+                $('#results').append(data);
             }
         });
     </script>

@@ -63,4 +63,5 @@ def main_interface():
         query = _make_query(start, end, namespace)
         archive = memdam.server.web.utils.get_archive(flask.request.authorization.username)
         events = archive.find(query)
+        events = sorted(events, key=lambda x: x.time__time)
     return flask.render_template('index.html', name=flask.request.authorization.username, form=form, events=events, json=json)
