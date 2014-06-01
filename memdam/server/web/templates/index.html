@@ -57,14 +57,33 @@
         // {% endfor %}
         ];
 
+        function endsWith(str, suffix) {
+            return str.indexOf(suffix, str.length - suffix.length) !== -1;
+        }
+
         $( document ).ready(function() {
             for (var i=0; i<ALL_EVENTS.length; i++) {
                 var event = ALL_EVENTS[i];
                 var data = "<div>"+event.time__time + " " + event.id__id + " " + event.type__namespace + " ";
                 var specialKeys = ["time__time", "id__id", "type__namespace"];
+                var image_extensions = ['png', 'jpg'];
                 for (var key in event) {
                     if (event.hasOwnProperty(key) && specialKeys.indexOf(key) == -1) {
-                        data += key + ": " + event[key] + "&nbsp;&nbsp;&nbsp;&nbsp;";
+                        var value = event[key];
+                        if (endsWith(key, "__file")) {
+                            var uuid = value[0];
+                            var extension = value[1];
+                            var data_url = '/api/v1/blobs/' + uuid + '.' + extension;
+                            value = '';
+                            value += '<a href="'+data_url+'">';
+                            if (image_extensions.indexOf(extension) != -1) {
+                                value += '<img width=100 src="'+data_url+'"/>'
+                            } else {
+                                value += 'download';
+                            }
+                            value += '</a>';
+                        }
+                        data += key + ": " + value + "&nbsp;&nbsp;&nbsp;&nbsp;";
                     }
                 }
                 data += "</div>";
