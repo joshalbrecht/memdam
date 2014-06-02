@@ -1,4 +1,5 @@
 
+import re
 import os
 import glob
 import datetime
@@ -24,6 +25,8 @@ class Folder(memdam.recorder.collector.collector.Collector):
         memdam.recorder.collector.collector.Collector.__init__(self, config=config, state_store=state_store, eventstore=eventstore, blobstore=blobstore)
         self._namespace = config.get('namespace')
         self._folder = config.get('folder')
+        self._filter = config.get('filter', [])
+        self._recurse = config.get('recurse', False)
         self._seconds_before_upload = datetime.timedelta(seconds=config.get('seconds_before_upload', 30.0))
         current_state = self._state_store.get_state()
         if current_state.get('last_modified', None) is None:
@@ -36,11 +39,23 @@ class Folder(memdam.recorder.collector.collector.Collector):
         self._files_collected = []
         #TODO: should probably parallelize this loop...
         #TODO: should probably be able to return futures from _collect so that we don't have to block forever
-        #TODO: probably want options about which files to include, whether to be recursive, etc
-        return [self._make_event(file_path) for file_path in glob.glob(self._folder + '/*') if self._include_file(file_path)]
+        return [self._make_event(file_path) for file_path in self._paths() if self._include_file(file_path)]
+
+    def _paths(self):
+        if self._recurse:
+            all_files = []
+            for root, dirs, files in os.walk(self._folder):
+                for file_name in files:
+                    all_files.append(os.path.join(self._folder, root, file_name))
+            return all_files
+        else:
+            return glob.glob(self._folder + '/*')
 
     @memdam.vtrace()
     def _include_file(self, file_path):
+        if self._filter:
+            if not re.compile(self._filter).match(file_path):
+                return False
         last_modified_time = self._get_modified_time(file_path)
         now = memdam.common.timeutils.now()
         time_when_ok_to_upload = last_modified_time + self._seconds_before_upload
@@ -54,10 +69,6 @@ class Folder(memdam.recorder.collector.collector.Collector):
             #this is dumb. saving as strings to prevent worries about float differences
             return str(previous_modified_time) != str(last_modified_time)
 
-    #TODO: make child classes that do something better for get_created_time:
-    #for recorder, look at mtime - length
-    #for google hangouts, use file name as time
-    #for calls, use file name as time
     def _get_created_time(self, file_path):
         return datetime.datetime.fromtimestamp(os.path.getctime(file_path), pytz.UTC)
 

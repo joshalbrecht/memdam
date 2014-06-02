@@ -28,6 +28,7 @@ import memdam.recorder.collector.folder
 import memdam.recorder.collector.status
 import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.collector.personal.recorder
+import memdam.recorder.collector.personal.phonecall
 import memdam.recorder.sync
 import memdam.recorder.application
 
@@ -54,6 +55,7 @@ def all_collectors():
                   memdam.recorder.collector.qtscreenshot.ScreenshotCollector,
                   memdam.recorder.collector.folder.Folder,
                   memdam.recorder.collector.personal.recorder.Recorder,
+                  memdam.recorder.collector.personal.phonecall.PhoneCall,
                   ]
     if memdam.common.utils.is_windows():
         collectors += []
