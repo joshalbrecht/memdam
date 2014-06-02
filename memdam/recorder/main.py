@@ -30,6 +30,7 @@ import memdam.recorder.collector.qtscreenshot
 import memdam.recorder.collector.personal.recorder
 import memdam.recorder.collector.personal.phonecall
 import memdam.recorder.collector.personal.hangout
+import memdam.recorder.collector.personal.narrative
 import memdam.recorder.sync
 import memdam.recorder.application
 
@@ -58,6 +59,7 @@ def all_collectors():
                   memdam.recorder.collector.personal.recorder.Recorder,
                   memdam.recorder.collector.personal.phonecall.PhoneCall,
                   memdam.recorder.collector.personal.hangout.Hangout,
+                  memdam.recorder.collector.personal.narrative.Narrative,
                   ]
     if memdam.common.utils.is_windows():
         collectors += []

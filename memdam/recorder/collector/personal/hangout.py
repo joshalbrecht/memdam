@@ -3,8 +3,6 @@ import os
 import datetime
 import subprocess
 
-import pytz
-
 import memdam
 import memdam.common.timeutils
 import memdam.recorder.collector.folder
