@@ -2,9 +2,8 @@
 import os
 import datetime
 
-import pytz
-
 import memdam
+import memdam.common.timeutils
 import memdam.recorder.collector.folder
 
 class PhoneCall(memdam.recorder.collector.folder.Folder):
@@ -50,7 +49,7 @@ class PhoneCall(memdam.recorder.collector.folder.Folder):
         hour, minute, second = timestamp.split('-')
         _, folder = os.path.split(directory)
         year, month, day = folder.split('-')
-        creation_time = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), tzinfo=pytz.UTC)
+        creation_time = memdam.common.timeutils.local_time_to_utc(datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second)))
         was_incoming = in_out == 'IN'
         return creation_time, was_incoming, phone_number
 

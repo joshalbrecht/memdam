@@ -15,8 +15,8 @@ import memdam.common.validation
 def new(namespace, **kwargs):
     """Convenience function for the creation of events"""
     kwargs['type__namespace'] = namespace
-    kwargs['time__time'] = memdam.common.timeutils.now()
-    kwargs['id__id'] = uuid.uuid4()
+    kwargs['time__time'] = kwargs.get('time__time', memdam.common.timeutils.now())
+    kwargs['id__id'] = kwargs.get('id__id', uuid.uuid4())
     return Event(**kwargs)
 
 class Event(object):
