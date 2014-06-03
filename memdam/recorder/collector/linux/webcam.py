@@ -10,6 +10,7 @@ import memdam
 import memdam.common.event
 import memdam.recorder.collector.collector
 
+#TODO: for clean shutdown, remove _last_image when shutting down
 class WebcamCollector(memdam.recorder.collector.collector.Collector):
     """
     Uses a simple external program (fswebcam) to capture the snapshots.
@@ -36,6 +37,7 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
 
         if os.path.getsize(snapshot_file) <= 0:
             memdam.log().warn("Failed to capture webcam image")
+            os.remove(snapshot_file)
             return []
 
         if self._is_similar_to_last_image(snapshot_file):
@@ -44,7 +46,10 @@ class WebcamCollector(memdam.recorder.collector.collector.Collector):
 
         copied_location = memdam.common.utils.make_temp_path()
         shutil.copy(snapshot_file, copied_location)
+        if self._last_image != None:
+            os.remove(self._last_image)
         self._last_image = copied_location
+
         snapshot = self._save_file(snapshot_file, consume_file=True)
         return [memdam.common.event.new(u"com.memdam.webcam", data__file=snapshot)]
 

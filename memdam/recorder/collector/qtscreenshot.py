@@ -14,6 +14,7 @@ import memdam.common.image
 import memdam.recorder.collector.collector
 import memdam.recorder.application
 
+#TODO: for clean shutdown, remove _last_image when shutting down
 class ScreenshotCollector(memdam.recorder.collector.collector.Collector):
     """
     Collects screenshots by using PyQT
@@ -40,6 +41,8 @@ class ScreenshotCollector(memdam.recorder.collector.collector.Collector):
                 return []
             copied_location = memdam.common.utils.make_temp_path()
             shutil.copy(screenshot_file, copied_location)
+            if self._last_image != None:
+                os.remove(self._last_image)
             self._last_image = copied_location
             screenshot = self._save_file(screenshot_file, consume_file=True)
             return [memdam.common.event.new(u"com.memdam.screenshot", data__file=screenshot)]
